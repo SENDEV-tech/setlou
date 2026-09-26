@@ -53,7 +53,7 @@ export async function signupAction(formData: FormData) {
   const parsed = signupSchema.safeParse(data);
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+    return { error: parsed.error.issues[0].message };
   }
 
   const { email, password, fullName, shopName, whatsapp } = parsed.data;
