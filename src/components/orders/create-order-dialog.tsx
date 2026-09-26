@@ -117,7 +117,7 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
                     <h3>Détails</h3>
                   </div>
                   <div className="space-y-3">
-                    <Select value={selectedProductId} onValueChange={setSelectedProductId} required>
+                    <Select value={selectedProductId} onValueChange={(v) => setSelectedProductId(v ?? "")} required>
                       <SelectTrigger className="bg-muted/50 border-transparent focus:bg-transparent">
                         <SelectValue placeholder="Sélectionnez un produit" />
                       </SelectTrigger>
