@@ -68,7 +68,7 @@ export function DateRangePicker({
             mode="single"
             selected={initialFrom}
             onSelect={handleFromSelect}
-            initialFocus
+            autoFocus
           />
         </PopoverContent>
       </Popover>
@@ -95,7 +95,7 @@ export function DateRangePicker({
             mode="single"
             selected={initialTo}
             onSelect={handleToSelect}
-            initialFocus
+            autoFocus
           />
         </PopoverContent>
       </Popover>
