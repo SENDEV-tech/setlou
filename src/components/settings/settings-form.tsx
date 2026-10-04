@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateShopSettingsAction } from "@/app/actions/settings";
 import { toast } from "sonner";
-import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save } from "lucide-react";
+import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save, CreditCard, CheckCircle2 } from "lucide-react";
 
 interface SettingsFormProps {
   shop: any;
@@ -50,7 +50,7 @@ export function SettingsForm({ shop }: SettingsFormProps) {
   return (
     <form onSubmit={handleSubmit} className="mt-8" autoComplete="off">
       <Tabs defaultValue="general" className="w-full max-w-4xl">
-        <TabsList className="grid w-full h-auto grid-cols-3 gap-2 mb-8 bg-transparent">
+        <TabsList className="grid w-full h-auto grid-cols-4 gap-2 mb-8 bg-transparent">
           <TabsTrigger value="general" className="flex items-center justify-center gap-2 data-[state=active]:bg-muted text-xs sm:text-sm">
             <Store className="w-4 h-4 shrink-0" />
             <span className="truncate">Général</span>
@@ -62,6 +62,10 @@ export function SettingsForm({ shop }: SettingsFormProps) {
           <TabsTrigger value="messaging" className="flex items-center justify-center gap-2 data-[state=active]:bg-muted text-xs sm:text-sm">
             <MessageSquare className="w-4 h-4 shrink-0" />
             <span className="truncate">Messages</span>
+          </TabsTrigger>
+          <TabsTrigger value="subscription" className="flex items-center justify-center gap-2 data-[state=active]:bg-muted text-xs sm:text-sm">
+            <CreditCard className="w-4 h-4 shrink-0" />
+            <span className="truncate">Abonnement</span>
           </TabsTrigger>
         </TabsList>
 
@@ -165,6 +169,89 @@ export function SettingsForm({ shop }: SettingsFormProps) {
                     defaultValue={shop.thank_you_message || "Merci pour votre achat ! Nous préparons votre commande."} 
                     className="min-h-[100px] resize-none"
                   />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="subscription" className="mt-0 space-y-6">
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium">Gérer votre abonnement</h3>
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                Modifiez votre plan d'abonnement. Le changement sera pris en compte immédiatement.
+              </p>
+              
+              <div className="grid md:grid-cols-2 gap-6 max-w-3xl">
+                {/* Plan PRO */}
+                <div className={`relative flex flex-col p-6 bg-card border rounded-2xl shadow-sm ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ? 'ring-2 ring-primary border-primary' : ''}`}>
+                  {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID && (
+                    <div className="absolute top-0 right-4 -translate-y-1/2">
+                      <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Actuel
+                      </span>
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold">Pro</h3>
+                  <div className="mt-4 flex items-baseline text-3xl font-extrabold">
+                    10.000 FCFA
+                    <span className="ml-1 text-xl font-medium text-muted-foreground">/mois</span>
+                  </div>
+                  <ul className="mt-6 space-y-3 flex-1">
+                    <li className="flex gap-x-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
+                      <span>Produits & Commandes illimités</span>
+                    </li>
+                    <li className="flex gap-x-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
+                      <span>Liens de paiement sécurisés</span>
+                    </li>
+                    <li className="flex gap-x-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
+                      <span>Jusqu'à 5 profils assistants</span>
+                    </li>
+                  </ul>
+                  <a
+                    href="/api/stripe/checkout?plan=pro"
+                    className={`mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ? 'bg-muted text-muted-foreground cursor-default pointer-events-none' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+                  >
+                    {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ? 'Plan actuel' : 'Choisir Pro'}
+                  </a>
+                </div>
+
+                {/* Plan ENTREPRISE */}
+                <div className={`relative flex flex-col p-6 bg-card border rounded-2xl shadow-sm ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID ? 'ring-2 ring-primary border-primary' : ''}`}>
+                  {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID && (
+                    <div className="absolute top-0 right-4 -translate-y-1/2">
+                      <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Actuel
+                      </span>
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold">Entreprise</h3>
+                  <div className="mt-4 flex items-baseline text-3xl font-extrabold">
+                    19.900 FCFA
+                    <span className="ml-1 text-xl font-medium text-muted-foreground">/mois</span>
+                  </div>
+                  <ul className="mt-6 space-y-3 flex-1">
+                    <li className="flex gap-x-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
+                      <span>Tout le plan Pro</span>
+                    </li>
+                    <li className="flex gap-x-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
+                      <span>Assistants illimités</span>
+                    </li>
+                    <li className="flex gap-x-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
+                      <span>Marque blanche</span>
+                    </li>
+                  </ul>
+                  <a
+                    href="/api/stripe/checkout?plan=entreprise"
+                    className={`mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID ? 'bg-muted text-muted-foreground cursor-default pointer-events-none' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+                  >
+                    {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID ? 'Plan actuel' : 'Passer à Entreprise'}
+                  </a>
                 </div>
               </div>
             </div>

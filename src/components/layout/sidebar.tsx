@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, Package, Users, Settings, HelpCircle } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Users, Settings, HelpCircle, CreditCard } from "lucide-react";
 
 import {
   Sidebar,

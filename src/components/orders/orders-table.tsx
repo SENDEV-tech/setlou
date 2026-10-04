@@ -10,6 +10,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatXOF } from "@/lib/money";
+import { Button } from "@/components/ui/button";
+import { validateOrderPaymentAction } from "@/app/actions/order";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface OrdersTableProps {
   orders: any[];
@@ -20,6 +24,8 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     switch (status) {
       case 'paid':
         return <Badge className="bg-green-500 hover:bg-green-600">Payé</Badge>;
+      case 'verifying':
+        return <Badge className="bg-amber-500 hover:bg-amber-600 animate-pulse">Vérification</Badge>;
       case 'pending':
         return <Badge variant="outline" className="text-orange-500 border-orange-500">En attente</Badge>;
       case 'cancelled':
@@ -57,7 +63,28 @@ export function OrdersTable({ orders }: OrdersTableProps) {
               <TableCell>{new Date(order.created_at).toLocaleString("fr-SN")}</TableCell>
               <TableCell>{getStatusBadge(order.status)}</TableCell>
               <TableCell>{order.creator?.full_name}</TableCell>
-              <TableCell className="text-right font-medium">{formatXOF(order.total_xof)}</TableCell>
+              <TableCell className="text-right font-medium">
+                {formatXOF(order.total_xof)}
+                {order.status === 'verifying' && (
+                  <div className="mt-2 flex justify-end">
+                    <Button 
+                      size="sm" 
+                      className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                      onClick={async () => {
+                        const loadingToast = toast.loading("Validation en cours...");
+                        const result = await validateOrderPaymentAction(order.id);
+                        if (result.success) {
+                          toast.success("Paiement validé !", { id: loadingToast });
+                        } else {
+                          toast.error("Erreur", { id: loadingToast });
+                        }
+                      }}
+                    >
+                      Valider
+                    </Button>
+                  </div>
+                )}
+              </TableCell>
             </TableRow>
           ))}
           {orders.length === 0 && (

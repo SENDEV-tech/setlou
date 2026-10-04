@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 // Types (re-exported or redefined)
 export type Role = 'owner' | 'assistant';
-export type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'expired' | 'refunded';
+export type OrderStatus = 'pending' | 'verifying' | 'paid' | 'cancelled' | 'expired' | 'refunded';
 
 // In a real application, we'd use actual logged-in user data.
 import { createClient } from "@/utils/supabase/server";
@@ -39,7 +39,8 @@ export async function getCurrentProfile() {
 
 // --- SHOPS ---
 export async function getShop(slugOrId?: string) {
-  let query = supabase.from('shops').select('*');
+  const supabaseServer = await createClient();
+  let query = supabaseServer.from('shops').select('*');
   
   if (slugOrId) {
     // try to match UUID format roughly, otherwise assume slug
@@ -50,7 +51,13 @@ export async function getShop(slugOrId?: string) {
       query = query.eq('slug', slugOrId);
     }
   } else {
-    query = query.limit(1);
+    // Fallback to getting current user's shop if no slug/id provided
+    try {
+      const shopId = await getCurrentShopId();
+      query = query.eq('id', shopId);
+    } catch {
+      query = query.limit(1);
+    }
   }
   
   const { data, error } = await query.single();
@@ -274,6 +281,36 @@ export async function getOrder(id: string) {
     .eq('id', id)
     .single();
     
+  if (error) throw error;
+  return data;
+}
+
+export async function getOrderByToken(token: string) {
+  const { createAdminClient } = await import('@/utils/supabase/admin');
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient
+    .from('orders')
+    .select(`
+      *,
+      order_items(*),
+      shop:shops(name, whatsapp_number)
+    `)
+    .eq('token_hash', token)
+    .single();
+    
+  if (error) throw error;
+  return data;
+}
+
+export async function markOrderAsVerifying(token: string) {
+  const { createAdminClient } = await import('@/utils/supabase/admin');
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient
+    .from('orders')
+    .update({ status: 'verifying' })
+    .eq('token_hash', token)
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }
