@@ -30,10 +30,10 @@ export async function createOrderAction(formData: FormData) {
   const protocol = host.includes("localhost") ? "http" : "https";
   const origin = `${protocol}://${host}`;
 
-  return { 
-    success: true, 
-    orderId: order.id, 
-    paymentLink: `${origin}/pay/${order.token_hash}` 
+  return {
+    success: true,
+    orderId: order.id,
+    paymentLink: `${origin}/pay/${order.token_hash}`
   };
 }
 
