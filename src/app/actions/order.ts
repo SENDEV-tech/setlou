@@ -2,7 +2,6 @@
 
 import { createOrder, markOrderAsVerifying } from "@/server/data/supabase-store";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 
 export async function createOrderAction(formData: FormData) {
   const customerName = formData.get("customerName") as string;
@@ -25,15 +24,10 @@ export async function createOrderAction(formData: FormData) {
   revalidatePath("/commandes");
   revalidatePath("/tableau-de-bord");
 
-  const headersList = await headers();
-  const host = headersList.get("host") || "localhost:3000";
-  const protocol = host.includes("localhost") ? "http" : "https";
-  const origin = `${protocol}://${host}`;
-
   return {
     success: true,
     orderId: order.id,
-    paymentLink: `${origin}/pay/${order.token_hash}`
+    paymentLink: `https://setlou.com/pay/${order.token_hash}`
   };
 }
 
