@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         const status = subscription.status;
         const customerId = subscription.customer as string;
         const priceId = subscription.items.data[0].price.id;
-        const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+        const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000).toISOString();
 
         // Mettre à jour la boutique correspondante
         const { error } = await supabaseAdmin
