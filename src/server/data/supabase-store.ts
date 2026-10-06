@@ -92,7 +92,7 @@ export async function getProducts(shopId?: string) {
 }
 
 export async function getProduct(id: string) {
-  const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+  const { data, error } = await (await createClient()).from('products').select('*').eq('id', id).single();
   if (error) throw error;
   return data;
 }
@@ -110,7 +110,7 @@ export async function createProduct(data: { name: string, description?: string, 
     image_path: data.image_path
   };
   
-  const { data: newProduct, error } = await supabase.from('products').insert([product]).select().single();
+  const { data: newProduct, error } = await (await createClient()).from('products').insert([product]).select().single();
   if (error) throw error;
   return newProduct;
 }
@@ -125,13 +125,13 @@ export async function updateProduct(id: string, data: { name: string, descriptio
     updates.image_path = data.image_path;
   }
   
-  const { data: updated, error } = await supabase.from('products').update(updates).eq('id', id).select().single();
+  const { data: updated, error } = await (await createClient()).from('products').update(updates).eq('id', id).select().single();
   if (error) throw error;
   return updated;
 }
 
 export async function deleteProduct(id: string) {
-  const { error } = await supabase.from('products').delete().eq('id', id);
+  const { error } = await (await createClient()).from('products').delete().eq('id', id);
   if (error) throw error;
   return true;
 }
@@ -148,7 +148,7 @@ export async function getShopProfiles() {
   if (error) throw error;
   
   // Also get stats for each profile
-  const { data: orders } = await supabase.from('orders').select('created_by, status').eq('shop_id', sid);
+  const { data: orders } = await (await createClient()).from('orders').select('created_by, status').eq('shop_id', sid);
   
   return (data || []).map(p => {
     const profileOrders = (orders || []).filter(o => o.created_by === p.id);
@@ -193,7 +193,7 @@ export async function createProfile(data: { full_name: string, role: Role, usern
     must_change_password: true
   };
   
-  const { data: newProfile, error } = await supabase.from('profiles').insert([profile]).select().single();
+  const { data: newProfile, error } = await (await createClient()).from('profiles').insert([profile]).select().single();
   if (error) {
     // Attempt rollback
     await adminClient.auth.admin.deleteUser(authData.user.id);
@@ -203,13 +203,13 @@ export async function createProfile(data: { full_name: string, role: Role, usern
 }
 
 export async function updateProfile(id: string, data: { full_name: string, role: Role, whatsapp_number: string }) {
-  const { data: updated, error } = await supabase.from('profiles').update(data).eq('id', id).select().single();
+  const { data: updated, error } = await (await createClient()).from('profiles').update(data).eq('id', id).select().single();
   if (error) throw error;
   return updated;
 }
 
 export async function deleteProfile(id: string) {
-  const { error } = await supabase.from('profiles').delete().eq('id', id);
+  const { error } = await (await createClient()).from('profiles').delete().eq('id', id);
   if (error) throw error;
   return true;
 }
@@ -393,13 +393,13 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
     updates.paid_at = new Date().toISOString();
   }
   
-  const { data, error } = await supabase.from('orders').update(updates).eq('id', id).select().single();
+  const { data, error } = await (await createClient()).from('orders').update(updates).eq('id', id).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function deleteOrder(id: string) {
-  const { error } = await supabase.from('orders').delete().eq('id', id);
+  const { error } = await (await createClient()).from('orders').delete().eq('id', id);
   if (error) throw error;
   return true;
 }
