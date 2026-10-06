@@ -319,11 +319,13 @@ export async function createOrder(data: { customerName: string, customerPhone: s
   const shop_id = await getCurrentShopId();
   const created_by = await getCurrentUserId();
   
+  const supabaseServer = await createClient();
+
   // Handle Customer
   let customerId = null;
-  const { data: customer } = await supabase.from('customers').select('*').eq('shop_id', shop_id).eq('phone', data.customerPhone).single();
+  const { data: customer } = await supabaseServer.from('customers').select('*').eq('shop_id', shop_id).eq('phone', data.customerPhone).single();
   if (!customer) {
-    const { data: newCustomer, error: custErr } = await supabase.from('customers').insert([{
+    const { data: newCustomer, error: custErr } = await supabaseServer.from('customers').insert([{
       shop_id,
       phone: data.customerPhone,
       full_name: data.customerName,
@@ -335,7 +337,7 @@ export async function createOrder(data: { customerName: string, customerPhone: s
   }
   
   // Get products to calculate subtotal
-  const { data: products } = await supabase.from('products').select('*').in('id', data.items.map(i => i.productId));
+  const { data: products } = await supabaseServer.from('products').select('*').in('id', data.items.map(i => i.productId));
   
   let subtotal = 0;
   const orderItems = [];
@@ -355,7 +357,7 @@ export async function createOrder(data: { customerName: string, customerPhone: s
   }
   
   const total = subtotal + data.deliveryFee;
-  const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('shop_id', shop_id);
+  const { count } = await supabaseServer.from('orders').select('*', { count: 'exact', head: true }).eq('shop_id', shop_id);
   const orderCount = count || 0;
   
   const order = {
@@ -374,12 +376,12 @@ export async function createOrder(data: { customerName: string, customerPhone: s
   };
   
   // Insert Order
-  const { data: newOrder, error: orderErr } = await supabase.from('orders').insert([order]).select().single();
+  const { data: newOrder, error: orderErr } = await supabaseServer.from('orders').insert([order]).select().single();
   if (orderErr) throw orderErr;
   
   // Insert Items
   const itemsToInsert = orderItems.map(i => ({ ...i, order_id: newOrder.id }));
-  const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
+  const { error: itemsErr } = await supabaseServer.from('order_items').insert(itemsToInsert);
   if (itemsErr) throw itemsErr;
   
   return newOrder;

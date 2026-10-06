@@ -1,5 +1,3 @@
 
-To https://github.com/SENDEV-tech/setlou.git
-   889aca9..a440c7c  main -> main
 
-Error: null
+Error: Command failed: git push
