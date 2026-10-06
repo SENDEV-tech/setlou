@@ -3,12 +3,14 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder_key"
 );
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
   apiVersion: "2025-03-31.basil" as any,
 });
 
