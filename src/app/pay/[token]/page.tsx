@@ -8,8 +8,8 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PayPage({ params }: { params: { token: string } }) {
-  // Wait for params in Next 15 (if needed) but let's assume it's directly accessible or await it.
+export default async function PayPage(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const token = params.token;
   
   let order;
