@@ -25,7 +25,7 @@ export function SalesChart({ data }: SalesChartProps) {
           className="h-[350px] w-full"
         >
           <LineChart data={data} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" strokeWidth={0.5} strokeOpacity={0.5} />
             <XAxis 
               dataKey="date" 
               tickLine={true} 
