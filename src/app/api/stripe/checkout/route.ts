@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getCurrentShopId, getShop } from "@/server/data/supabase-store";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_fallback", {
   apiVersion: "2025-03-31.basil" as any,
 });
 
