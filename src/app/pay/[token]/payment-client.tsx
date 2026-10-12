@@ -46,7 +46,9 @@ export function PaymentClient({ order, token }: { order: any; token: string }) {
         </div>
         <h1 className="text-2xl font-bold mb-2">Paiement validé</h1>
         <p className="text-muted-foreground mb-6">
-          Votre paiement a été confirmé par <strong>{order.shop.name}</strong>. Merci pour votre confiance !
+          {order.shop.thank_you_message || (
+            <>Votre paiement a été confirmé par <strong>{order.shop.name}</strong>. Merci pour votre confiance !</>
+          )}
         </p>
       </div>
     );
@@ -83,17 +85,31 @@ export function PaymentClient({ order, token }: { order: any; token: string }) {
   return (
     <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border max-w-md w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="bg-slate-900 p-6 text-white text-center relative overflow-hidden">
+      <div 
+        className="p-6 text-white text-center relative overflow-hidden transition-colors duration-300"
+        style={{ backgroundColor: order.shop.brand_color || "#0f172a" }}
+      >
         <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        <div className="relative z-10">
-          <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-semibold">Paiement Sécurisé</p>
-          <h1 className="text-2xl font-bold mb-4">{order.shop.name}</h1>
-          <div className="text-5xl font-black mb-2">{formatXOF(order.total_xof)}</div>
-          <p className="text-slate-300 text-sm">Réf : {order.reference}</p>
+        <div className="relative z-10 flex flex-col items-center">
+          {order.shop.logo_path && (
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/20 p-1 mb-3 border border-white/30 shadow-md backdrop-blur-xs">
+              <img src={order.shop.logo_path} alt={order.shop.name} className="w-full h-full object-cover rounded-xl" />
+            </div>
+          )}
+          <p className="text-white/80 text-xs mb-1 uppercase tracking-wider font-semibold">Paiement Sécurisé</p>
+          <h1 className="text-2xl font-bold mb-3">{order.shop.name}</h1>
+          <div className="text-4xl sm:text-5xl font-black mb-2">{formatXOF(order.total_xof)}</div>
+          <p className="text-white/80 text-xs">Réf : {order.reference}</p>
         </div>
       </div>
 
-      <div className="p-6 md:p-8 space-y-8">
+      <div className="p-6 md:p-8 space-y-6">
+        {order.shop.welcome_message && (
+          <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 text-xs text-slate-600 text-center italic">
+            "{order.shop.welcome_message}"
+          </div>
+        )}
+
         {/* Order Details */}
         <div className="space-y-3 text-sm">
           <h3 className="font-semibold text-slate-900 border-b pb-2 mb-3">Détails de la commande</h3>

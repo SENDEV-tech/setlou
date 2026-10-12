@@ -13,19 +13,69 @@ interface SettingsFormProps {
   shop: any;
 }
 
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const maxDim = 512;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        resolve(dataUrl);
+      };
+      img.onerror = () => resolve(event.target?.result as string);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export function SettingsForm({ shop }: SettingsFormProps) {
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(shop.logo_path || null);
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState(shop.brand_color || "#16a34a");
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      if (!file.type.startsWith("image/")) {
+        toast.error("Veuillez sélectionner un fichier image valide (JPG, PNG).");
+        return;
+      }
+      try {
+        const compressed = await compressImage(file);
+        setLogoPreview(compressed);
+        setLogoBase64(compressed);
+      } catch (err) {
+        console.error(err);
+        toast.error("Erreur lors de la lecture de l'image.");
+      }
     }
   };
 
@@ -35,10 +85,15 @@ export function SettingsForm({ shop }: SettingsFormProps) {
     
     try {
       const formData = new FormData(e.currentTarget);
+      if (logoBase64) {
+        formData.set("logo_base64", logoBase64);
+      }
       const result = await updateShopSettingsAction(formData);
       
-      if (result.success) {
+      if (result?.success) {
         toast.success("Paramètres enregistrés avec succès !");
+      } else {
+        toast.error(result?.error || "Erreur lors de l'enregistrement.");
       }
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'enregistrement.");
@@ -138,6 +193,32 @@ export function SettingsForm({ shop }: SettingsFormProps) {
                         onChange={(e) => setBrandColor(e.target.value)}
                         className="font-mono"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Aperçu en direct */}
+                <div className="space-y-3 pt-4 border-t">
+                  <label className="text-sm font-medium">Aperçu en direct (Lien de paiement)</label>
+                  <div className="border rounded-2xl overflow-hidden max-w-sm shadow-md">
+                    <div 
+                      className="p-5 text-white text-center relative overflow-hidden transition-colors duration-300"
+                      style={{ backgroundColor: brandColor || "#0f172a" }}
+                    >
+                      <div className="relative z-10 flex flex-col items-center">
+                        {logoPreview && (
+                          <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/20 p-0.5 mb-2 border border-white/30 shadow-sm backdrop-blur-xs">
+                            <img src={logoPreview} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                          </div>
+                        )}
+                        <p className="text-white/80 text-[10px] uppercase tracking-wider font-semibold">Paiement Sécurisé</p>
+                        <h4 className="text-base font-bold">{shop.name || "Ma Boutique"}</h4>
+                        <div className="text-2xl font-black mt-1">25.000 FCFA</div>
+                        <p className="text-white/80 text-[11px] mt-0.5">Réf : CMD-8429</p>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-slate-900 text-xs text-center text-muted-foreground">
+                      Ce bandeau sera visible par votre client lors du paiement.
                     </div>
                   </div>
                 </div>

@@ -67,14 +67,18 @@ export async function getShop(slugOrId?: string) {
 
 export async function updateShopSettings(settings: any) {
   const shopId = await getCurrentShopId();
-  const { data, error } = await supabase
+  const supabaseServer = await createClient();
+  const { data, error } = await supabaseServer
     .from('shops')
     .update(settings)
     .eq('id', shopId)
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error("updateShopSettings error:", error);
+    throw error;
+  }
   return data;
 }
 
@@ -293,7 +297,7 @@ export async function getOrderByToken(token: string) {
     .select(`
       *,
       order_items(*),
-      shop:shops(name, whatsapp_number)
+      shop:shops(name, whatsapp_number, brand_color, logo_path, welcome_message, thank_you_message)
     `)
     .eq('token_hash', token)
     .single();
