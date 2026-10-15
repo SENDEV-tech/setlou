@@ -47,6 +47,8 @@ export function ProfileDialog({ profile, open: controlledOpen, onOpenChange }: P
       if (result.success) {
         toast.success(isEdit ? "Profil modifié avec succès !" : "Assistant ajouté avec succès !");
         setOpen(false);
+      } else {
+        toast.error(result.error || "Erreur lors de l'enregistrement.");
       }
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'enregistrement.");

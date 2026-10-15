@@ -31,12 +31,26 @@ export async function GET(req: Request) {
       const subscriptionId = session.subscription as string;
 
       if (shopId) {
+        const plan = session.metadata?.plan || "starter";
+        let monthlyLimit: number | null = 100;
+        let maxAssistants: number | null = 1;
+        if (plan === "pro") {
+          monthlyLimit = null;
+          maxAssistants = 5;
+        } else if (plan === "entreprise") {
+          monthlyLimit = null;
+          maxAssistants = null;
+        }
+
         await supabaseAdmin
           .from("shops")
           .update({
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             subscription_status: "active",
+            subscription_plan: plan,
+            monthly_orders_limit: monthlyLimit,
+            max_assistants: maxAssistants,
           })
           .eq("id", shopId);
       }

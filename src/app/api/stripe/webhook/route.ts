@@ -36,6 +36,17 @@ export async function POST(req: Request) {
         const shopId = session.client_reference_id || session.metadata?.shopId;
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
+        const plan = session.metadata?.plan || "starter";
+
+        let monthlyLimit: number | null = 100;
+        let maxAssistants: number | null = 1;
+        if (plan === "pro") {
+          monthlyLimit = null;
+          maxAssistants = 5;
+        } else if (plan === "entreprise") {
+          monthlyLimit = null;
+          maxAssistants = null;
+        }
 
         if (shopId) {
           // Mettre à jour la base de données de la boutique
@@ -44,7 +55,10 @@ export async function POST(req: Request) {
             .update({
               stripe_customer_id: customerId,
               stripe_subscription_id: subscriptionId,
-              subscription_status: "active", // Ou 'trialing' selon l'API
+              subscription_status: "active",
+              subscription_plan: plan,
+              monthly_orders_limit: monthlyLimit,
+              max_assistants: maxAssistants,
             })
             .eq("id", shopId);
 
@@ -62,12 +76,29 @@ export async function POST(req: Request) {
         const priceId = subscription.items?.data?.[0]?.price?.id || null;
         const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
 
+        let plan = 'starter';
+        let monthlyLimit: number | null = 100;
+        let maxAssistants: number | null = 1;
+
+        if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) {
+          plan = 'pro';
+          monthlyLimit = null;
+          maxAssistants = 5;
+        } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID) {
+          plan = 'entreprise';
+          monthlyLimit = null;
+          maxAssistants = null;
+        }
+
         // Mettre à jour la boutique correspondante
         const { error } = await supabaseAdmin
           .from("shops")
           .update({
             subscription_status: status,
             stripe_price_id: priceId,
+            subscription_plan: plan,
+            monthly_orders_limit: monthlyLimit,
+            max_assistants: maxAssistants,
             stripe_current_period_end: currentPeriodEnd,
           })
           .eq("stripe_customer_id", customerId);

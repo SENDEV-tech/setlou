@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusIcon, CopyIcon, User, Phone, Package, Truck, CheckCircle2, MessageCircle } from "lucide-react";
+import { PlusIcon, CopyIcon, Check, User, Phone, Package, Truck, CheckCircle2, MessageCircle } from "lucide-react";
 import { createOrderAction } from "@/app/actions/order";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +25,7 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [paymentLink, setPaymentLink] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
 
   const [selectedProductId, setSelectedProductId] = React.useState<string>("");
   const [quantity, setQuantity] = React.useState<number>(1);
@@ -46,11 +47,13 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
       const result = await createOrderAction(formData);
       
       if (result.success) {
-        setPaymentLink(result.paymentLink);
+        setPaymentLink(result.paymentLink ?? null);
         toast.success("Commande créée avec succès !");
+      } else {
+        toast.error(result.error || "Erreur lors de la création de la commande.");
       }
-    } catch (error) {
-      toast.error("Erreur lors de la création de la commande.");
+    } catch (error: any) {
+      toast.error(error?.message || "Erreur lors de la création de la commande.");
     } finally {
       setLoading(false);
     }
@@ -63,13 +66,16 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
       setSelectedProductId("");
       setQuantity(1);
       setDeliveryFee(1000);
+      setCopied(false);
     }, 300);
   };
 
   const copyToClipboard = () => {
     if (paymentLink) {
       navigator.clipboard.writeText(paymentLink);
-      toast.info("Lien copié dans le presse-papier !");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("Lien copié dans le presse-papier !");
     }
   };
 
@@ -216,8 +222,22 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
             
             <div className="w-full max-w-md p-4 bg-muted/50 rounded-xl flex items-center gap-3 border shadow-sm">
               <span className="text-sm truncate select-all flex-1 text-left font-medium">{paymentLink}</span>
-              <Button variant="secondary" size="icon" onClick={copyToClipboard} className="shrink-0 hover:bg-primary hover:text-primary-foreground transition-colors">
-                <CopyIcon className="h-4 w-4" />
+              <Button 
+                variant="secondary" 
+                size="icon" 
+                onClick={copyToClipboard} 
+                className={`shrink-0 transition-all duration-200 ${
+                  copied 
+                    ? "bg-green-100 text-green-600 border border-green-300 hover:bg-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800" 
+                    : "hover:bg-primary hover:text-primary-foreground"
+                }`}
+                title={copied ? "Copié !" : "Copier le lien"}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-600 dark:text-green-400 animate-in zoom-in-75 duration-200" />
+                ) : (
+                  <CopyIcon className="h-4 w-4" />
+                )}
               </Button>
             </div>
 

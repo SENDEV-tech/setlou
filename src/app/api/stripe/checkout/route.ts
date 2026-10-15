@@ -18,7 +18,9 @@ async function handleCheckout(plan: string, origin: string) {
     }
 
     let priceId = "";
-    if (plan === "pro") {
+    if (plan === "starter") {
+      priceId = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || "price_1UPjVLCOB0TltJmTj8RhvrFb";
+    } else if (plan === "pro") {
       priceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!;
     } else if (plan === "entreprise") {
       priceId = process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID!;
@@ -41,6 +43,7 @@ async function handleCheckout(plan: string, origin: string) {
       client_reference_id: shopId,
       metadata: {
         shopId: shopId,
+        plan: plan,
       }
     };
     

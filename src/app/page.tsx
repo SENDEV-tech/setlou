@@ -345,45 +345,71 @@ export default function LandingPage() {
             <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">Un tarif simple et transparent</h2>
             <p className="text-xl text-muted-foreground mb-20 max-w-2xl mx-auto">Rentabilisez votre abonnement dès votre première commande sauvée.</p>
             
-            <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+
+              {/* PLAN STARTER */}
+              <div className="bg-card border rounded-3xl p-8 flex flex-col items-center text-center hover:shadow-lg transition-shadow relative justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Starter</h3>
+                  <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
+                    <span className="text-4xl md:text-5xl font-extrabold">4.900</span>
+                    <span className="text-lg text-muted-foreground font-medium">FCFA<br/>/mois</span>
+                  </div>
+                  <p className="text-muted-foreground mb-8 min-h-[48px] text-sm">Idéal pour démarrer votre boutique et sécuriser vos premières ventes.</p>
+                  <ul className="space-y-3.5 mb-10 w-full text-left font-medium text-sm">
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>100 commandes</strong> par mois</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>1 profil assistant</strong> inclus</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Liens de paiement sécurisés</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Statistiques de base</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Support standard</span></li>
+                  </ul>
+                </div>
+                <Link href="/signup?plan=starter" className={buttonVariants({ variant: "outline", className: "w-full rounded-full h-12 text-base mt-auto" })}>
+                  Essayer gratuitement 14 jours
+                </Link>
+              </div>
 
               {/* PLAN PRO (POPULAIRE) */}
-              <div className="bg-background border-2 border-primary rounded-3xl p-10 flex flex-col items-center text-center shadow-2xl relative scale-105 z-10">
-                <div className="absolute -top-4 bg-primary text-primary-foreground px-6 py-1.5 rounded-full text-sm font-bold shadow-md">
+              <div className="bg-background border-2 border-primary rounded-3xl p-8 flex flex-col items-center text-center shadow-2xl relative md:scale-105 z-10 justify-between">
+                <div className="absolute -top-3.5 bg-primary text-primary-foreground px-5 py-1 rounded-full text-xs font-bold shadow-md uppercase tracking-wider">
                   LE PLUS POPULAIRE
                 </div>
-                <h3 className="text-2xl font-bold mb-4">Pro</h3>
-                <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
-                  <span className="text-5xl font-extrabold">10.000</span>
-                  <span className="text-xl text-muted-foreground font-medium">FCFA<br/>/mois</span>
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Pro</h3>
+                  <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
+                    <span className="text-4xl md:text-5xl font-extrabold">9.900</span>
+                    <span className="text-lg text-muted-foreground font-medium">FCFA<br/>/mois</span>
+                  </div>
+                  <p className="text-muted-foreground mb-8 min-h-[48px] text-sm">Pour les professionnels qui veulent déléguer et exploser leurs ventes.</p>
+                  <ul className="space-y-3.5 mb-10 w-full text-left font-medium text-sm">
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>Commandes illimitées</strong></span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Jusqu'à <strong>5 profils assistants</strong></span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Liens de paiement sécurisés</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Statistiques avancées</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Support prioritaire WhatsApp</span></li>
+                  </ul>
                 </div>
-                <p className="text-muted-foreground mb-8 min-h-[48px]">Pour les professionnels qui veulent déléguer et exploser leurs ventes.</p>
-                <ul className="space-y-4 mb-10 w-full text-left font-medium">
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Produits & Commandes illimités</span></li>
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Liens de paiement sécurisés</span></li>
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Jusqu'à 5 profils assistants</span></li>
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Statistiques avancées</span></li>
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Support prioritaire WhatsApp</span></li>
-                </ul>
                 <Link href="/signup?plan=pro" className={buttonVariants({ className: "w-full rounded-full h-12 text-base mt-auto shadow-lg" })}>
                   Essayer gratuitement 14 jours
                 </Link>
               </div>
 
               {/* PLAN ENTREPRISE */}
-              <div className="bg-card border rounded-3xl p-10 flex flex-col items-center text-center hover:shadow-lg transition-shadow relative">
-                <h3 className="text-2xl font-bold mb-4">Entreprise</h3>
-                <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
-                  <span className="text-5xl font-extrabold">19.900</span>
-                  <span className="text-xl text-muted-foreground font-medium">FCFA<br/>/mois</span>
+              <div className="bg-card border rounded-3xl p-8 flex flex-col items-center text-center hover:shadow-lg transition-shadow relative justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Entreprise</h3>
+                  <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
+                    <span className="text-4xl md:text-5xl font-extrabold">19.900</span>
+                    <span className="text-lg text-muted-foreground font-medium">FCFA<br/>/mois</span>
+                  </div>
+                  <p className="text-muted-foreground mb-8 min-h-[48px] text-sm">Pour les grandes équipes et les très gros volumes de vente.</p>
+                  <ul className="space-y-3.5 mb-10 w-full text-left font-medium text-sm">
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Tout le plan Pro</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>Assistants illimités</strong></span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Commandes illimitées</span></li>
+                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Marque blanche & Accompagnement</span></li>
+                  </ul>
                 </div>
-                <p className="text-muted-foreground mb-8 min-h-[48px]">Pour les grandes équipes et les très gros volumes de vente.</p>
-                <ul className="space-y-4 mb-10 w-full text-left font-medium">
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Tout le plan Pro</span></li>
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Assistants illimités</span></li>
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Marque blanche</span></li>
-                  <li className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-primary shrink-0" /><span>Accompagnement dédié</span></li>
-                </ul>
                 <Link href="/signup?plan=entreprise" className={buttonVariants({ variant: "outline", className: "w-full rounded-full h-12 text-base mt-auto" })}>
                   Commencer
                 </Link>
@@ -416,7 +442,7 @@ export default function LandingPage() {
               />
               <FAQItem 
                 question="Que se passe-t-il après l'essai de 14 jours ?"
-                answer="À la fin de votre essai, votre boutique sera suspendue jusqu'à ce que vous souscriviez au plan Pro ou Entreprise. Vos données (produits, commandes) seront conservées précieusement sur nos serveurs et vous y aurez de nouveau accès dès le paiement de votre abonnement."
+                answer="À la fin de votre essai, votre boutique sera suspendue jusqu'à ce que vous souscriviez au plan Starter, Pro ou Entreprise. Vos données (produits, commandes) seront conservées précieusement sur nos serveurs et vous y aurez de nouveau accès dès le paiement de votre abonnement."
               />
             </div>
             

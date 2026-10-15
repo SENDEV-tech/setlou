@@ -87,6 +87,9 @@ export async function signupAction(formData: FormData) {
       name: shopName,
       slug: shopName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       whatsapp_number: whatsapp,
+      subscription_plan: 'starter',
+      monthly_orders_limit: 100,
+      max_assistants: 1,
     })
     .select()
     .single();

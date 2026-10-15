@@ -168,6 +168,29 @@ export async function getShopProfiles() {
 
 export async function createProfile(data: { full_name: string, role: Role, username: string, whatsapp_number: string }) {
   const shop_id = await getCurrentShopId();
+  const supabaseServer = await createClient();
+
+  // Vérifier la limite d'assistants selon le plan en base de données
+  if (data.role === 'assistant') {
+    const { data: shop } = await supabaseServer
+      .from('shops')
+      .select('max_assistants, subscription_plan')
+      .eq('id', shop_id)
+      .single();
+
+    if (shop && shop.max_assistants !== null && shop.max_assistants !== undefined) {
+      const { count: assistantCount } = await supabaseServer
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('shop_id', shop_id)
+        .eq('role', 'assistant');
+
+      if ((assistantCount || 0) >= shop.max_assistants) {
+        const planName = shop.subscription_plan === 'starter' ? 'Starter' : (shop.subscription_plan || 'actuelle');
+        throw new Error(`Limite atteinte : votre formule ${planName} autorise au maximum ${shop.max_assistants} assistant${shop.max_assistants > 1 ? 's' : ''}. Passez au forfait Pro pour ajouter jusqu'à 5 assistants !`);
+      }
+    }
+  }
   
   // Create Auth User via admin client
   const { createAdminClient } = await import('@/utils/supabase/admin');
@@ -324,6 +347,30 @@ export async function createOrder(data: { customerName: string, customerPhone: s
   const created_by = await getCurrentUserId();
   
   const supabaseServer = await createClient();
+
+  // Vérifier la limite mensuelle de commandes selon le plan en base de données
+  const { data: shop } = await supabaseServer
+    .from('shops')
+    .select('monthly_orders_limit, subscription_plan')
+    .eq('id', shop_id)
+    .single();
+
+  if (shop && shop.monthly_orders_limit !== null && shop.monthly_orders_limit !== undefined) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count: monthlyOrdersCount } = await supabaseServer
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', shop_id)
+      .gte('created_at', startOfMonth.toISOString());
+
+    if ((monthlyOrdersCount || 0) >= shop.monthly_orders_limit) {
+      const planName = shop.subscription_plan === 'starter' ? 'Starter' : (shop.subscription_plan || 'actuelle');
+      throw new Error(`Limite mensuelle atteinte : votre formule ${planName} est limitée à ${shop.monthly_orders_limit} commandes par mois. Passez au forfait Pro pour générer des liens de paiement en illimité !`);
+    }
+  }
 
   // Handle Customer
   let customerId = null;
