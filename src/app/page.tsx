@@ -1,481 +1,501 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Play, 
-  Store, 
-  Smartphone, 
-  CreditCard, 
-  ChevronDown,
-  Star,
+import {
   ArrowRight,
+  BadgeCheck,
+  ChevronDown,
+  CircleDollarSign,
+  Link2,
   Menu,
-  X
+  MessageCircle,
+  PackagePlus,
+  SearchX,
+  Smartphone,
+  Store,
+  UserCheck,
+  Users,
+  Wallet,
 } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// --- Composants Locaux ---
+export const metadata: Metadata = {
+  title: "Setlou — Vos ventes WhatsApp, enfin comptées",
+  description:
+    "Envoyez un lien de paiement pour chaque commande WhatsApp. Setlou compte vos ventes, suit chaque assistant et calcule votre chiffre d'affaires. 0 % de commission.",
+};
 
-function FAQItem({ question, answer }: { question: string; answer: string }) {
-  const [isOpen, setIsOpen] = useState(false);
+const navLinks = [
+  { href: "#comment", label: "Comment ça marche" },
+  { href: "#equipe", label: "Assistants" },
+  { href: "#tarifs", label: "Tarifs" },
+  { href: "#faq", label: "FAQ" },
+];
+
+const problems = [
+  {
+    icon: SearchX,
+    title: "Combien avez-vous vendu ce mois-ci ?",
+    text: "Les commandes sont éparpillées dans des dizaines de discussions. Faire le total prend des heures, ou ne se fait jamais.",
+  },
+  {
+    icon: Users,
+    title: "Qui a vendu quoi ?",
+    text: "Vos assistants répondent sur leurs propres numéros. Impossible de savoir combien chacun a conclu.",
+  },
+  {
+    icon: Smartphone,
+    title: "Ce client a-t-il vraiment payé ?",
+    text: "Vous fouillez vos notifications Wave et Orange Money pour retrouver chaque transfert.",
+  },
+];
+
+const steps = [
+  {
+    icon: PackagePlus,
+    title: "Ajoutez vos produits",
+    text: "Nom, prix, photo. Une seule fois.",
+  },
+  {
+    icon: Link2,
+    title: "Créez la commande",
+    text: "Choisissez le produit et la quantité : Setlou génère un lien de paiement à votre nom.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Envoyez le lien sur WhatsApp",
+    text: "Le client voit le détail et le montant, paie sur votre Wave ou Orange Money, puis confirme.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Validez en un clic",
+    text: "Dès que vous avez reçu l'argent, la vente est comptée dans votre chiffre d'affaires.",
+  },
+];
+
+const plans = [
+  {
+    name: "Starter",
+    price: "4.900",
+    pitch: "Pour un vendeur seul qui veut enfin connaître ses chiffres.",
+    features: ["100 commandes par mois", "1 profil assistant", "Liens de paiement personnalisés", "Statistiques de base"],
+    href: "/signup?plan=starter",
+    featured: false,
+  },
+  {
+    name: "Pro",
+    price: "9.900",
+    pitch: "Pour les boutiques qui vendent avec une équipe.",
+    features: ["Commandes illimitées", "Jusqu'à 5 profils assistants", "Ventes par assistant", "Support prioritaire WhatsApp"],
+    href: "/signup?plan=pro",
+    featured: true,
+  },
+  {
+    name: "Entreprise",
+    price: "19.900",
+    pitch: "Pour les grosses équipes et les gros volumes.",
+    features: ["Tout le plan Pro", "Assistants illimités", "Accompagnement à la mise en place"],
+    href: "/signup?plan=entreprise",
+    featured: false,
+  },
+];
+
+const faqs = [
+  {
+    q: "L'argent passe-t-il par Setlou ?",
+    a: "Non. Le client paie directement sur votre numéro Wave ou Orange Money. Setlou ne touche pas votre argent et ne prend aucune commission sur vos ventes : vous ne payez que l'abonnement.",
+  },
+  {
+    q: "Comment je sais que le client a vraiment payé ?",
+    a: "Le client confirme son transfert sur la page de paiement, la commande passe en « à vérifier ». Vous contrôlez la réception sur votre Wave ou Orange Money, puis vous validez. Seules les ventes validées comptent dans votre chiffre d'affaires.",
+  },
+  {
+    q: "Mes assistants voient-ils mes revenus ?",
+    a: "Non. Un assistant n'a accès qu'aux commandes et aux produits. Le tableau de bord, les revenus, les profils et les paramètres sont réservés au propriétaire de la boutique.",
+  },
+  {
+    q: "Je vends seul, Setlou est-il utile ?",
+    a: "Oui. Même sans assistant, vous obtenez des liens de paiement propres pour vos clients et un suivi automatique de vos ventes par semaine, mois et année.",
+  },
+  {
+    q: "Ai-je besoin de WhatsApp Business ou d'un site web ?",
+    a: "Non. Vous continuez à vendre sur votre WhatsApp habituel. Setlou vous donne simplement un lien à envoyer et un tableau de bord pour suivre vos ventes.",
+  },
+  {
+    q: "Que se passe-t-il après l'essai de 14 jours ?",
+    a: "Votre boutique est mise en pause jusqu'à ce que vous choisissiez un plan. Vos produits et vos commandes sont conservés.",
+  },
+];
+
+function Logo({ className }: { className?: string }) {
   return (
-    <div className="border-b border-border py-6">
-      <button 
-        className="flex w-full items-center justify-between text-left font-semibold text-lg md:text-xl focus:outline-none"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {question}
-        <ChevronDown className={cn("h-6 w-6 text-muted-foreground transition-transform duration-300", isOpen && "rotate-180")} />
-      </button>
-      <div 
-        className={cn(
-          "overflow-hidden transition-all duration-300 ease-in-out",
-          isOpen ? "max-h-96 mt-4 opacity-100" : "max-h-0 opacity-0"
-        )}
-      >
-        <p className="text-muted-foreground md:text-lg leading-relaxed">{answer}</p>
+    <Link href="/" className={cn("flex items-center gap-2.5 font-bold text-xl tracking-tight", className)}>
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+        <Store className="h-5 w-5" />
+      </span>
+      Setlou
+    </Link>
+  );
+}
+
+function Navbar() {
+  return (
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-lg">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+        <Logo />
+
+        <nav className="hidden items-center gap-7 md:flex">
+          {navLinks.map((l) => (
+            <Link key={l.href} href={l.href} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-4 md:flex">
+          <Link href="/login" className="text-sm font-semibold hover:text-primary">
+            Se connecter
+          </Link>
+          <Link href="/signup" className={buttonVariants({ className: "rounded-full px-5" })}>
+            Essayer gratuitement
+          </Link>
+        </div>
+
+        {/* Menu mobile sans JavaScript */}
+        <details className="group md:hidden">
+          <summary className="list-none rounded-lg p-2 [&::-webkit-details-marker]:hidden" aria-label="Ouvrir le menu">
+            <Menu className="h-6 w-6" />
+          </summary>
+          <div className="absolute left-0 top-16 flex w-full flex-col gap-1 border-b bg-background px-4 pb-6 pt-2 shadow-lg">
+            {navLinks.map((l) => (
+              <Link key={l.href} href={l.href} className="border-b py-3 text-base font-medium">
+                {l.label}
+              </Link>
+            ))}
+            <Link href="/login" className="py-3 text-base font-medium text-primary">
+              Se connecter
+            </Link>
+            <Link href="/signup" className={buttonVariants({ size: "lg", className: "mt-2 w-full rounded-full" })}>
+              Essayer gratuitement
+            </Link>
+          </div>
+        </details>
+      </div>
+    </header>
+  );
+}
+
+/** Aperçu illustratif : la page de paiement vue par le client et le tableau de bord vu par le vendeur. */
+function HeroPreview() {
+  return (
+    <div className="relative mx-auto w-full max-w-md lg:max-w-none" aria-hidden="true">
+      {/* Page de paiement (téléphone) */}
+      <div className="relative z-10 mx-auto w-64 rounded-[2rem] border-[6px] border-foreground/90 bg-background shadow-2xl sm:w-72">
+        <div className="rounded-t-[1.6rem] bg-slate-900 px-5 pb-5 pt-6 text-center text-white">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Paiement</p>
+          <p className="mt-1 text-sm font-semibold">Boutique Awa Style</p>
+          <p className="mt-2 text-3xl font-black">25 000 F</p>
+          <p className="mt-1 text-[10px] text-white/60">Réf : CMD-0142</p>
+        </div>
+        <div className="space-y-3 p-4 text-xs">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">2x Robe wax</span>
+            <span className="font-medium">22 000 F</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Livraison</span>
+            <span className="font-medium">3 000 F</span>
+          </div>
+          <div className="rounded-xl border bg-muted/50 p-3">
+            <p className="text-[11px] text-muted-foreground">Envoyez le montant via Wave ou Orange Money au</p>
+            <p className="mt-1 font-bold tracking-wider">77 123 45 67</p>
+          </div>
+          <div className="rounded-xl bg-primary py-2.5 text-center text-xs font-bold text-primary-foreground">
+            J&apos;ai effectué le transfert
+          </div>
+        </div>
+      </div>
+
+      {/* Carte tableau de bord */}
+      <div className="relative z-20 -mt-8 ml-auto w-60 rounded-2xl border bg-card p-4 shadow-xl sm:w-64 lg:absolute lg:-right-4 lg:bottom-6 lg:mt-0">
+        <p className="text-[11px] font-medium text-muted-foreground">Cette semaine</p>
+        <p className="mt-0.5 text-2xl font-black">487 500 F</p>
+        <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">32 ventes validées</p>
+        <div className="mt-3 space-y-2 border-t pt-3">
+          {[
+            { name: "Awa", sales: 14, w: "w-full" },
+            { name: "Ibou", sales: 11, w: "w-4/5" },
+            { name: "Vous", sales: 7, w: "w-1/2" },
+          ].map((a) => (
+            <div key={a.name} className="flex items-center gap-2 text-[11px]">
+              <span className="w-8 font-medium">{a.name}</span>
+              <span className="h-1.5 flex-1 rounded-full bg-muted">
+                <span className={cn("block h-1.5 rounded-full bg-emerald-500", a.w)} />
+              </span>
+              <span className="w-5 text-right tabular-nums text-muted-foreground">{a.sales}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function Navbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+function TeamPreview() {
+  const rows = [
+    { name: "Awa Diop", phone: "77 •• •• 12", sales: 14, amount: "214 000 F" },
+    { name: "Ibrahima Sarr", phone: "78 •• •• 45", sales: 11, amount: "168 500 F" },
+    { name: "Mariama Ba", phone: "76 •• •• 08", sales: 4, amount: "57 000 F" },
+  ];
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 font-bold text-2xl text-primary">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg">
-            <Store className="h-6 w-6" />
-          </div>
-          <span className="tracking-tight">Setlou</span>
-        </Link>
-        
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8">
-          <Link href="#fonctionnalites" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Comment ça marche</Link>
-          <Link href="#demo" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Démo</Link>
-          <Link href="#tarifs" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Tarifs</Link>
-          <Link href="#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
-        </nav>
-
-        <div className="hidden md:flex items-center gap-4">
-          <Link href="/login" className="text-sm font-semibold hover:text-primary transition-colors">
-            Se connecter
-          </Link>
-          <Link href="/signup" className={buttonVariants({ size: "default", className: "rounded-full px-6 shadow-md" })}>
-            Créer une boutique
-          </Link>
-        </div>
-
-        {/* Mobile Nav Toggle */}
-        <button className="md:hidden p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+    <div className="overflow-hidden rounded-2xl border bg-card shadow-lg" aria-hidden="true">
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <p className="text-sm font-semibold">Ventes par assistant</p>
+        <p className="text-xs text-muted-foreground">Cette semaine</p>
       </div>
-
-      {/* Mobile Nav Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-background px-4 py-6 flex flex-col gap-4 shadow-xl absolute w-full left-0">
-          <Link href="#fonctionnalites" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2 border-b">Comment ça marche</Link>
-          <Link href="#demo" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2 border-b">Démo</Link>
-          <Link href="#tarifs" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2 border-b">Tarifs</Link>
-          <Link href="/login" className="text-lg font-medium py-2 text-primary">Se connecter</Link>
-          <Link href="/signup" className={buttonVariants({ size: "lg", className: "w-full mt-4 rounded-full" })}>
-            Créer une boutique
-          </Link>
-        </div>
-      )}
-    </header>
+      <ul className="divide-y">
+        {rows.map((r) => (
+          <li key={r.name} className="flex items-center gap-3 px-4 py-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold">
+              {r.name.charAt(0)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{r.name}</span>
+              <span className="block text-xs text-muted-foreground">WhatsApp {r.phone}</span>
+            </span>
+            <span className="text-right">
+              <span className="block text-sm font-semibold tabular-nums">{r.amount}</span>
+              <span className="block text-xs text-muted-foreground">{r.sales} ventes</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
-// --- Page Principale ---
-
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-x-hidden">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground">
       <Navbar />
 
       <main className="flex-1">
-        
-        {/* 1. HERO SECTION */}
-        <section className="relative pt-24 pb-20 md:pt-32 md:pb-28 px-4 container mx-auto text-center flex flex-col items-center overflow-hidden">
-          {/* Background Glows */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] -z-10 opacity-70 pointer-events-none"></div>
-
-          <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary mb-8 shadow-sm">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-primary mr-3 animate-pulse"></span>
-            La nouvelle façon de vendre sur WhatsApp
+        {/* HERO */}
+        <section className="mx-auto grid max-w-6xl items-center gap-14 px-4 pb-20 pt-14 md:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-10 lg:pb-28">
+          <div>
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground">
+              <MessageCircle className="h-3.5 w-3.5" />
+              Pour les vendeurs qui vendent sur WhatsApp
+            </p>
+            <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+              Vos ventes WhatsApp, enfin comptées.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              Envoyez un lien de paiement pour chaque commande. Setlou enregistre la vente, note quel assistant l&apos;a
+              conclue et calcule votre chiffre d&apos;affaires de la semaine, du mois et de l&apos;année.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-7 text-base" })}>
+                Essayer 14 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+              <Link
+                href="#comment"
+                className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-full px-7 text-base" })}
+              >
+                Voir comment ça marche
+              </Link>
+            </div>
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center gap-1.5">
+                <BadgeCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Wave et Orange Money
+              </li>
+              <li className="flex items-center gap-1.5">
+                <BadgeCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> 0 % de commission
+              </li>
+              <li className="flex items-center gap-1.5">
+                <BadgeCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Sans site web
+              </li>
+            </ul>
           </div>
-          
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter max-w-5xl mb-8 leading-[1.1]">
-            Transformez vos conversations WhatsApp en <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">ventes concrètes</span>
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mb-12 leading-relaxed">
-            Fini les commandes perdues dans les messages. Setlou centralise vos ventes, 
-            sécurise vos paiements et automatise le suivi. Vendez plus, sans stress.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-6 w-full justify-center max-w-lg mb-20">
-            <Link href="/signup" className={buttonVariants({ size: "lg", className: "w-full sm:w-auto text-lg h-14 px-8 rounded-full shadow-xl hover:shadow-primary/25 transition-all" })}>
-              Commencer gratuitement <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <Link href="#demo" className={buttonVariants({ variant: "outline", size: "lg", className: "w-full sm:w-auto text-lg h-14 px-8 rounded-full border-2 hover:bg-muted" })}>
-              <Play className="mr-2 h-5 w-5" /> Voir la démo
-            </Link>
-          </div>
-
-          <div className="w-full max-w-6xl aspect-video bg-muted/30 rounded-3xl border-4 border-muted shadow-2xl overflow-hidden relative group z-10">
-            <iframe 
-              className="w-full h-full"
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=placeholder" 
-              title="YouTube video player" 
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-              allowFullScreen>
-            </iframe>
-          </div>
+          <HeroPreview />
         </section>
 
-        {/* 2. PROBLEMES & BÉNÉFICES */}
-        <section className="py-20 md:py-28 bg-muted/30 relative">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-20">
-              <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">Vendre sur WhatsApp est un cauchemar...</h2>
-              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">Voici comment Setlou rend la vente simple, professionnelle et sécurisée.</p>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-              {/* Problèmes */}
-              <div className="space-y-8 bg-background p-8 md:p-10 rounded-3xl border shadow-sm">
-                <h3 className="text-2xl font-bold text-destructive flex items-center gap-3 mb-8">
-                  <XCircle className="h-8 w-8" /> L'ancienne façon de faire
-                </h3>
-                <ul className="space-y-6">
-                  {[
-                    "Commandes éparpillées et perdues dans vos discussions.",
-                    "Paiements difficiles à vérifier (fausses captures d'écran).",
-                    "Les clients se désistent ou oublient de payer.",
-                    "Impossible de déléguer sans donner accès à votre téléphone.",
-                    "Calcul des revenus manuel et erreurs de comptabilité."
-                  ].map((problem, i) => (
-                    <li key={i} className="flex items-start gap-4">
-                      <div className="mt-1 h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                        <XCircle className="h-5 w-5 text-destructive" />
-                      </div>
-                      <span className="text-lg text-muted-foreground leading-relaxed">{problem}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Bénéfices */}
-              <div className="space-y-8 bg-primary/5 p-8 md:p-10 rounded-3xl border border-primary/20 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-32 bg-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
-                <h3 className="text-2xl font-bold text-primary flex items-center gap-3 mb-8 relative z-10">
-                  <CheckCircle2 className="h-8 w-8" /> Avec Setlou
-                </h3>
-                <ul className="space-y-6 relative z-10">
-                  {[
-                    "Centralisation de toutes vos commandes au même endroit.",
-                    "Paiements via lien sécurisé, vérifiés automatiquement.",
-                    "Relances professionnelles et suivi en un clic.",
-                    "Accès sécurisé pour vos assistants (sans partager vos codes).",
-                    "Tableau de bord complet avec statistiques en temps réel."
-                  ].map((benefit, i) => (
-                    <li key={i} className="flex items-start gap-4">
-                      <div className="mt-1 h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <span className="text-lg font-medium leading-relaxed">{benefit}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 3. TÉMOIGNAGES */}
-        <section className="py-20 md:py-28">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-20 tracking-tight">Ils ont transformé leur business</h2>
-            <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {[
-                { name: "Amina Fall", role: "Vendeuse de cosmétiques", text: "Je passais mes soirées à pointer les commandes sur un cahier. Depuis Setlou, tout est automatique. Un gain de temps fou !" },
-                { name: "Moussa Diop", role: "Boutique de vêtements", text: "Le fait que mes assistants puissent valider les commandes sans avoir mon WhatsApp a sauvé mon organisation." },
-                { name: "Fatou Ndiaye", role: "Traiteur à domicile", text: "Les liens de paiement font tellement plus pro. Mes clients paient plus vite et je n'ai plus de faux reçus." }
-              ].map((t, i) => (
-                <div key={i} className="p-10 rounded-3xl bg-card border shadow-lg hover:shadow-xl transition-shadow text-left flex flex-col relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="flex gap-1 mb-6 text-yellow-400">
-                    {[1,2,3,4,5].map(s => <Star key={s} className="h-5 w-5 fill-current" />)}
-                  </div>
-                  <p className="text-lg text-muted-foreground italic mb-10 grow leading-relaxed">"{t.text}"</p>
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center font-bold text-lg">
-                      {t.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-bold text-lg">{t.name}</p>
-                      <p className="text-sm text-primary font-medium">{t.role}</p>
-                    </div>
-                  </div>
+        {/* PROBLÈME */}
+        <section className="border-y bg-muted/40 py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="max-w-2xl text-3xl font-extrabold tracking-tight sm:text-4xl">
+              Vendre sur WhatsApp, c&apos;est rapide. Suivre ses ventes, beaucoup moins.
+            </h2>
+            <div className="mt-12 grid gap-5 md:grid-cols-3">
+              {problems.map((p) => (
+                <div key={p.title} className="rounded-2xl border bg-background p-6">
+                  <p.icon className="h-6 w-6 text-muted-foreground" />
+                  <h3 className="mt-4 text-lg font-bold">{p.title}</h3>
+                  <p className="mt-2 leading-relaxed text-muted-foreground">{p.text}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* 4. LA SOLUTION (COMMENT ÇA MARCHE) */}
-        <section id="fonctionnalites" className="py-20 md:py-28 bg-slate-950 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
-          
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="text-center mb-20">
-              <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">La solution la plus simple du marché</h2>
-              <p className="text-white/70 text-xl md:text-2xl max-w-3xl mx-auto">
-                Pas besoin de site web compliqué. Vous avez juste besoin de Setlou et de WhatsApp.
-              </p>
-            </div>
+        {/* COMMENT ÇA MARCHE */}
+        <section id="comment" className="scroll-mt-16 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-4">
+            <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Comment ça marche</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-extrabold tracking-tight sm:text-4xl">
+              Vous gardez WhatsApp. Setlou fait les comptes.
+            </h2>
+            <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {steps.map((s, i) => (
+                <li key={s.title} className="relative rounded-2xl border p-6">
+                  <span className="text-sm font-bold tabular-nums text-muted-foreground">0{i + 1}</span>
+                  <s.icon className="mt-4 h-7 w-7" />
+                  <h3 className="mt-4 text-lg font-bold">{s.title}</h3>
+                  <p className="mt-2 leading-relaxed text-muted-foreground">{s.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
 
-            <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
-              <div className="flex flex-col p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-primary/30 text-white">
-                  <Store className="h-8 w-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-4">1. Créez votre boutique</h3>
-                <p className="text-white/70 text-lg leading-relaxed">Ajoutez vos produits, vos prix et vos photos en moins de 2 minutes chrono. Votre catalogue est prêt.</p>
-              </div>
-              
-              <div className="flex flex-col p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-primary/30 text-white">
-                  <Smartphone className="h-8 w-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-4">2. Partagez sur WhatsApp</h3>
-                <p className="text-white/70 text-lg leading-relaxed">Envoyez les fiches produits générées par Setlou directement dans vos discussions avec les clients.</p>
-              </div>
-              
-              <div className="flex flex-col p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-primary/30 text-white">
-                  <CreditCard className="h-8 w-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-4">3. Encaissez et suivez</h3>
-                <p className="text-white/70 text-lg leading-relaxed">Le client paie via un lien sécurisé, et la commande s'affiche automatiquement sur votre tableau de bord.</p>
-              </div>
+        {/* ASSISTANTS */}
+        <section id="equipe" className="scroll-mt-16 bg-slate-950 py-20 text-white md:py-28">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 lg:grid-cols-2">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-widest text-white/50">Vous vendez avec une équipe ?</p>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Faites vendre vos assistants. Gardez le contrôle.
+              </h2>
+              <ul className="mt-8 space-y-5">
+                {[
+                  { icon: UserCheck, text: "Chaque assistant a son propre accès et son numéro WhatsApp. Vous n'avez plus à prêter votre téléphone." },
+                  { icon: CircleDollarSign, text: "Chaque vente est attribuée à l'assistant qui l'a conclue. Vous voyez qui vend, et combien." },
+                  { icon: Wallet, text: "Vos assistants voient les commandes et les produits, jamais vos revenus ni vos paramètres." },
+                ].map((item) => (
+                  <li key={item.text} className="flex gap-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                      <item.icon className="h-5 w-5" />
+                    </span>
+                    <p className="pt-2 leading-relaxed text-white/75">{item.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="text-foreground">
+              <TeamPreview />
             </div>
           </div>
         </section>
 
-        {/* 5. DEMO VIDEO DETAILLEE (3 MIN) */}
-        <section id="demo" className="py-20 md:py-28">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">Voyez Setlou en action</h2>
-            <p className="text-xl md:text-2xl text-muted-foreground mb-16 max-w-2xl mx-auto">Découvrez comment fonctionne l'outil en 3 minutes top chrono.</p>
-            
-            <div className="max-w-5xl mx-auto aspect-video bg-muted rounded-3xl overflow-hidden shadow-2xl border-2">
-              {/* Vraie iframe pour rendre la démo fonctionnelle (Placeholder YouTube) */}
-              <iframe 
-                className="w-full h-full"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=placeholder_demo" 
-                title="Démo Complète Setlou" 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                allowFullScreen>
-              </iframe>
-            </div>
-            
-            <div className="mt-12">
-              <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-14 px-10 rounded-full text-lg shadow-lg" })}>
-                Créer ma boutique maintenant
-              </Link>
-            </div>
+        {/* ARGENT */}
+        <section className="py-20 md:py-28">
+          <div className="mx-auto max-w-3xl px-4 text-center">
+            <Wallet className="mx-auto h-8 w-8" />
+            <h2 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl">Votre argent ne passe pas par nous.</h2>
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+              Vos clients paient directement sur votre Wave ou votre Orange Money. Pas d&apos;intermédiaire, pas de délai
+              de reversement, pas de commission sur vos ventes. Vous payez seulement l&apos;abonnement.
+            </p>
           </div>
         </section>
 
-        {/* 6. STORYTELLING / A PROPOS */}
-        <section className="py-20 md:py-28 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent -z-10"></div>
-          
-          <div className="container mx-auto px-4 max-w-4xl text-center">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 text-primary mb-10 ring-8 ring-primary/5">
-              <Store className="h-12 w-12" />
+        {/* TARIFS */}
+        <section id="tarifs" className="scroll-mt-16 border-t bg-muted/40 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Des tarifs simples</h2>
+              <p className="mt-3 text-muted-foreground">14 jours d&apos;essai gratuit sur tous les plans.</p>
             </div>
-            
-            <h2 className="text-4xl md:text-5xl font-black mb-12 tracking-tight">Notre mission</h2>
-            
-            <div className="space-y-8 text-xl md:text-2xl text-muted-foreground leading-relaxed text-left md:text-center font-medium">
-              <p>
-                Tout a commencé par un sentiment de frustration profond. En observant de près les e-commerçants de notre entourage, nous avons découvert une <span className="text-foreground font-bold">détresse silencieuse</span>.
-              </p>
-              <p>
-                Sacrifier ses nuits pour scroller frénétiquement WhatsApp, angoisser face aux fausses captures d'écran, et refuser des commandes par épuisement mental... <span className="text-destructive font-bold">C'est une réalité inacceptable.</span>
-              </p>
-              
-              <div className="relative py-12 my-12">
-                <div className="absolute left-1/2 -translate-x-1/2 top-0 h-px w-32 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-                <p className="text-2xl md:text-4xl text-foreground font-bold italic tracking-tight leading-snug">
-                  "Personne ne devrait avoir à sacrifier sa santé et sa tranquillité d'esprit pour faire grandir son commerce."
-                </p>
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-0 h-px w-32 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-              </div>
-
-              <p>
-                C'est pour protéger les entrepreneurs qu'est né <span className="text-primary font-extrabold">Setlou</span>. Plus qu'un outil, c'est votre partenaire pour retrouver le sourire, votre temps libre, et la sécurité financière de votre activité.
-              </p>
-            </div>
-
-            <div className="mt-16 inline-flex flex-col items-center">
-              <div className="h-1.5 w-12 bg-primary rounded-full mb-4"></div>
-              <p className="font-bold text-lg uppercase tracking-widest text-primary">L'équipe Setlou</p>
-            </div>
-          </div>
-        </section>
-
-        {/* 7. TARIFS */}
-        <section id="tarifs" className="py-20 md:py-28">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">Un tarif simple et transparent</h2>
-            <p className="text-xl text-muted-foreground mb-20 max-w-2xl mx-auto">Rentabilisez votre abonnement dès votre première commande sauvée.</p>
-            
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-
-              {/* PLAN STARTER */}
-              <div className="bg-card border rounded-3xl p-8 flex flex-col items-center text-center hover:shadow-lg transition-shadow relative justify-between">
-                <div>
-                  <h3 className="text-2xl font-bold mb-4">Starter</h3>
-                  <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
-                    <span className="text-4xl md:text-5xl font-extrabold">4.900</span>
-                    <span className="text-lg text-muted-foreground font-medium">FCFA<br/>/mois</span>
-                  </div>
-                  <p className="text-muted-foreground mb-8 min-h-[48px] text-sm">Idéal pour démarrer votre boutique et sécuriser vos premières ventes.</p>
-                  <ul className="space-y-3.5 mb-10 w-full text-left font-medium text-sm">
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>100 commandes</strong> par mois</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>1 profil assistant</strong> inclus</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Liens de paiement sécurisés</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Statistiques de base</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Support standard</span></li>
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {plans.map((plan) => (
+                <div
+                  key={plan.name}
+                  className={cn(
+                    "relative flex flex-col rounded-2xl border bg-background p-7",
+                    plan.featured && "border-2 border-primary shadow-xl"
+                  )}
+                >
+                  {plan.featured && (
+                    <span className="absolute -top-3 left-7 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-primary-foreground">
+                      Pour les équipes
+                    </span>
+                  )}
+                  <h3 className="text-xl font-bold">{plan.name}</h3>
+                  <p className="mt-1 min-h-12 text-sm text-muted-foreground">{plan.pitch}</p>
+                  <p className="mt-5">
+                    <span className="text-4xl font-black tabular-nums">{plan.price}</span>
+                    <span className="ml-1 text-sm text-muted-foreground">FCFA / mois</span>
+                  </p>
+                  <ul className="mt-6 flex-1 space-y-3 text-sm">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        {f}
+                      </li>
+                    ))}
                   </ul>
+                  <Link
+                    href={plan.href}
+                    className={buttonVariants({
+                      variant: plan.featured ? "default" : "outline",
+                      className: "mt-8 h-11 w-full rounded-full",
+                    })}
+                  >
+                    Commencer l&apos;essai
+                  </Link>
                 </div>
-                <Link href="/signup?plan=starter" className={buttonVariants({ variant: "outline", className: "w-full rounded-full h-12 text-base mt-auto" })}>
-                  Essayer gratuitement 14 jours
-                </Link>
-              </div>
-
-              {/* PLAN PRO (POPULAIRE) */}
-              <div className="bg-background border-2 border-primary rounded-3xl p-8 flex flex-col items-center text-center shadow-2xl relative md:scale-105 z-10 justify-between">
-                <div className="absolute -top-3.5 bg-primary text-primary-foreground px-5 py-1 rounded-full text-xs font-bold shadow-md uppercase tracking-wider">
-                  LE PLUS POPULAIRE
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold mb-4">Pro</h3>
-                  <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
-                    <span className="text-4xl md:text-5xl font-extrabold">9.900</span>
-                    <span className="text-lg text-muted-foreground font-medium">FCFA<br/>/mois</span>
-                  </div>
-                  <p className="text-muted-foreground mb-8 min-h-[48px] text-sm">Pour les professionnels qui veulent déléguer et exploser leurs ventes.</p>
-                  <ul className="space-y-3.5 mb-10 w-full text-left font-medium text-sm">
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>Commandes illimitées</strong></span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Jusqu'à <strong>5 profils assistants</strong></span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Liens de paiement sécurisés</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Statistiques avancées</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Support prioritaire WhatsApp</span></li>
-                  </ul>
-                </div>
-                <Link href="/signup?plan=pro" className={buttonVariants({ className: "w-full rounded-full h-12 text-base mt-auto shadow-lg" })}>
-                  Essayer gratuitement 14 jours
-                </Link>
-              </div>
-
-              {/* PLAN ENTREPRISE */}
-              <div className="bg-card border rounded-3xl p-8 flex flex-col items-center text-center hover:shadow-lg transition-shadow relative justify-between">
-                <div>
-                  <h3 className="text-2xl font-bold mb-4">Entreprise</h3>
-                  <div className="mb-6 h-20 flex items-baseline justify-center gap-1">
-                    <span className="text-4xl md:text-5xl font-extrabold">19.900</span>
-                    <span className="text-lg text-muted-foreground font-medium">FCFA<br/>/mois</span>
-                  </div>
-                  <p className="text-muted-foreground mb-8 min-h-[48px] text-sm">Pour les grandes équipes et les très gros volumes de vente.</p>
-                  <ul className="space-y-3.5 mb-10 w-full text-left font-medium text-sm">
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Tout le plan Pro</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span><strong>Assistants illimités</strong></span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Commandes illimitées</span></li>
-                    <li className="flex items-start gap-2.5"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>Marque blanche & Accompagnement</span></li>
-                  </ul>
-                </div>
-                <Link href="/signup?plan=entreprise" className={buttonVariants({ variant: "outline", className: "w-full rounded-full h-12 text-base mt-auto" })}>
-                  Commencer
-                </Link>
-              </div>
-
+              ))}
             </div>
           </div>
         </section>
 
-        {/* 8. FAQ */}
-        <section id="faq" className="py-20 md:py-28 bg-muted/30">
-          <div className="container mx-auto px-4 max-w-3xl">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">Foire aux questions</h2>
-              <p className="text-xl text-muted-foreground">Tout ce que vous devez savoir avant de vous lancer.</p>
+        {/* FAQ */}
+        <section id="faq" className="scroll-mt-16 py-20 md:py-28">
+          <div className="mx-auto max-w-3xl px-4">
+            <h2 className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">Questions fréquentes</h2>
+            <div className="mt-10 divide-y border-y">
+              {faqs.map((f) => (
+                <details key={f.q} className="group py-5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-lg font-semibold [&::-webkit-details-marker]:hidden">
+                    {f.q}
+                    <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                  </summary>
+                  <p className="mt-3 leading-relaxed text-muted-foreground">{f.a}</p>
+                </details>
+              ))}
             </div>
-            
-            <div className="bg-background rounded-3xl border p-6 md:p-10 shadow-sm">
-              <FAQItem 
-                question="Ai-je besoin de WhatsApp Business ?"
-                answer="Non, Setlou fonctionne très bien même si vous utilisez la version classique de WhatsApp. Cependant, WhatsApp Business offre d'autres avantages complémentaires (comme les réponses rapides) que vous pouvez combiner avec Setlou."
-              />
-              <FAQItem 
-                question="Est-ce que les paiements sont sécurisés ?"
-                answer="Absolument. Nous utilisons des fournisseurs de paiement locaux reconnus (Wave, Orange Money, etc.). Les fonds arrivent directement sur vos comptes de manière traçable et sécurisée, empêchant toute fraude."
-              />
-              <FAQItem 
-                question="Mes assistants ont-ils accès à mes revenus ?"
-                answer="Non. Grâce à notre gestion stricte des rôles, vos assistants (profils restreints) ne voient que les commandes à préparer et les fiches produits. Le tableau de bord financier et les statistiques vous sont exclusivement réservés."
-              />
-              <FAQItem 
-                question="Que se passe-t-il après l'essai de 14 jours ?"
-                answer="À la fin de votre essai, votre boutique sera suspendue jusqu'à ce que vous souscriviez au plan Starter, Pro ou Entreprise. Vos données (produits, commandes) seront conservées précieusement sur nos serveurs et vous y aurez de nouveau accès dès le paiement de votre abonnement."
-              />
-            </div>
-            
-            <div className="mt-12 text-center">
-              <p className="text-muted-foreground">Une autre question ? <Link href="mailto:support@setlou.com" className="text-primary font-medium hover:underline">Contactez notre support</Link></p>
-            </div>
+          </div>
+        </section>
+
+        {/* APPEL FINAL */}
+        <section className="px-4 pb-20 md:pb-28">
+          <div className="mx-auto max-w-6xl rounded-3xl bg-primary px-6 py-14 text-center text-primary-foreground md:py-20">
+            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Sachez enfin combien vous vendez.</h2>
+            <p className="mx-auto mt-4 max-w-xl text-primary-foreground/70">
+              Créez votre boutique, ajoutez vos produits et envoyez votre premier lien de paiement aujourd&apos;hui.
+            </p>
+            <Link
+              href="/signup"
+              className={buttonVariants({
+                variant: "secondary",
+                size: "lg",
+                className: "mt-8 h-12 rounded-full px-8 text-base",
+              })}
+            >
+              Essayer 14 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
           </div>
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-slate-950 text-slate-300 py-16 border-t border-slate-900">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-3 font-bold text-2xl text-white">
-              <div className="h-8 w-8 rounded bg-primary text-primary-foreground flex items-center justify-center">
-                <Store className="h-5 w-5" />
-              </div>
-              Setlou
-            </div>
-            <p className="text-sm text-slate-400 max-w-xs text-center md:text-left">
-              La plateforme tout-en-un pour sécuriser et automatiser vos ventes sur WhatsApp.
-            </p>
-          </div>
-          
-          <div className="flex gap-8 text-sm font-medium">
-            <Link href="/login" className="hover:text-white transition-colors">Connexion</Link>
-            <Link href="mailto:support@setlou.com" className="hover:text-white transition-colors">Support</Link>
-            <Link href="#" className="hover:text-white transition-colors">Mentions légales</Link>
-          </div>
-        </div>
-        <div className="container mx-auto px-4 mt-12 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
-          © {new Date().getFullYear()} Setlou. Tous droits réservés. Créé avec passion pour les e-commerçants.
+      <footer className="border-t py-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 md:flex-row">
+          <Logo className="text-lg" />
+          <nav className="flex gap-6 text-sm text-muted-foreground">
+            <Link href="/login" className="hover:text-foreground">Connexion</Link>
+            <Link href="mailto:support@setlou.com" className="hover:text-foreground">Support</Link>
+          </nav>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Setlou</p>
         </div>
       </footer>
     </div>
