@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,20 @@ import {
 
 interface ProductGridProps {
   products: any[];
+}
+
+function StockBadge({ product }: { product: any }) {
+  const stock = product.stock_quantity;
+  if (stock === null || stock === undefined) {
+    return <Badge variant="outline" className="text-muted-foreground">Stock non renseigné</Badge>;
+  }
+  if (stock === 0) {
+    return <Badge variant="destructive">Épuisé</Badge>;
+  }
+  if (stock <= (product.low_stock_threshold ?? 3)) {
+    return <Badge variant="outline" className="text-orange-500 border-orange-500">Plus que {stock}</Badge>;
+  }
+  return <Badge variant="secondary">{stock} en stock</Badge>;
 }
 
 export function ProductGrid({ products }: ProductGridProps) {
@@ -105,8 +120,9 @@ export function ProductGrid({ products }: ProductGridProps) {
                 </p>
               )}
             </CardContent>
-            <CardFooter className="p-4 pt-0">
+            <CardFooter className="p-4 pt-0 flex items-center justify-between gap-2">
               <div className="font-bold text-primary">{formatXOF(product.price_xof)}</div>
+              <StockBadge product={product} />
             </CardFooter>
           </Card>
         ))}

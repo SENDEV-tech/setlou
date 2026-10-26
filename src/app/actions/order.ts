@@ -1,6 +1,6 @@
 "use server";
 
-import { createOrder, markOrderAsVerifying } from "@/server/data/supabase-store";
+import { cancelOrder, createOrder, markOrderAsVerifying } from "@/server/data/supabase-store";
 import { revalidatePath } from "next/cache";
 
 export async function createOrderAction(formData: FormData) {
@@ -23,6 +23,7 @@ export async function createOrderAction(formData: FormData) {
     });
 
     revalidatePath("/commandes");
+    revalidatePath("/produits");
     revalidatePath("/tableau-de-bord");
 
     return {
@@ -59,5 +60,18 @@ export async function validateOrderPaymentAction(orderId: string) {
   } catch (error) {
     console.error("Error validating payment:", error);
     return { success: false, error: "Failed to validate payment." };
+  }
+}
+
+export async function cancelOrderAction(orderId: string) {
+  try {
+    await cancelOrder(orderId);
+    revalidatePath("/commandes");
+    revalidatePath("/produits");
+    revalidatePath("/tableau-de-bord");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error cancelling order:", error);
+    return { success: false, error: error?.message || "Erreur lors de l'annulation." };
   }
 }

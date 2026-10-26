@@ -101,7 +101,7 @@ export async function getProduct(id: string) {
   return data;
 }
 
-export async function createProduct(data: { name: string, description?: string, price: number, image_path?: string }) {
+export async function createProduct(data: { name: string, description?: string, price: number, stock: number | null, image_path?: string }) {
   const shop_id = await getCurrentShopId();
   const created_by = await getCurrentUserId();
   
@@ -111,6 +111,7 @@ export async function createProduct(data: { name: string, description?: string, 
     name: data.name,
     description: data.description,
     price_xof: data.price,
+    stock_quantity: data.stock,
     image_path: data.image_path
   };
   
@@ -119,11 +120,12 @@ export async function createProduct(data: { name: string, description?: string, 
   return newProduct;
 }
 
-export async function updateProduct(id: string, data: { name: string, description?: string, price: number, image_path?: string }) {
+export async function updateProduct(id: string, data: { name: string, description?: string, price: number, stock: number | null, image_path?: string }) {
   const updates: any = {
     name: data.name,
     description: data.description,
     price_xof: data.price,
+    stock_quantity: data.stock,
   };
   if (data.image_path !== undefined) {
     updates.image_path = data.image_path;
@@ -132,6 +134,14 @@ export async function updateProduct(id: string, data: { name: string, descriptio
   const { data: updated, error } = await (await createClient()).from('products').update(updates).eq('id', id).select().single();
   if (error) throw error;
   return updated;
+}
+
+// Produits dont le stock suivi est au niveau du seuil d'alerte ou en dessous.
+export async function getLowStockProducts(shopId?: string) {
+  const products = await getProducts(shopId);
+  return products
+    .filter(p => p.stock_quantity !== null && p.stock_quantity !== undefined && p.stock_quantity <= (p.low_stock_threshold ?? 3))
+    .sort((a, b) => a.stock_quantity - b.stock_quantity);
 }
 
 export async function deleteProduct(id: string) {
@@ -407,6 +417,25 @@ export async function createOrder(data: { customerName: string, customerPhone: s
     }
   }
   
+  // Réserver le stock avant de créer la commande (atomique côté base).
+  const reserved: { productId: string, quantity: number }[] = [];
+  for (const item of orderItems) {
+    const { data: ok, error: stockErr } = await supabaseServer.rpc('decrement_product_stock', {
+      p_product_id: item.product_id,
+      p_quantity: item.quantity,
+    });
+    if (stockErr || !ok) {
+      await restoreStock(supabaseServer, reserved);
+      if (stockErr) throw stockErr;
+      const product = products?.find(p => p.id === item.product_id);
+      const left = product?.stock_quantity ?? 0;
+      throw new Error(left > 0
+        ? `Stock insuffisant pour « ${item.product_name} » : il n'en reste que ${left}.`
+        : `« ${item.product_name} » est épuisé.`);
+    }
+    reserved.push({ productId: item.product_id, quantity: item.quantity });
+  }
+
   const total = subtotal + data.deliveryFee;
   const { count } = await supabaseServer.from('orders').select('*', { count: 'exact', head: true }).eq('shop_id', shop_id);
   const orderCount = count || 0;
@@ -428,14 +457,55 @@ export async function createOrder(data: { customerName: string, customerPhone: s
   
   // Insert Order
   const { data: newOrder, error: orderErr } = await supabaseServer.from('orders').insert([order]).select().single();
-  if (orderErr) throw orderErr;
+  if (orderErr) {
+    await restoreStock(supabaseServer, reserved);
+    throw orderErr;
+  }
   
   // Insert Items
   const itemsToInsert = orderItems.map(i => ({ ...i, order_id: newOrder.id }));
   const { error: itemsErr } = await supabaseServer.from('order_items').insert(itemsToInsert);
-  if (itemsErr) throw itemsErr;
+  if (itemsErr) {
+    await supabaseServer.from('orders').delete().eq('id', newOrder.id);
+    await restoreStock(supabaseServer, reserved);
+    throw itemsErr;
+  }
   
   return newOrder;
+}
+
+async function restoreStock(supabaseServer: Awaited<ReturnType<typeof createClient>>, items: { productId: string, quantity: number }[]) {
+  for (const item of items) {
+    const { error } = await supabaseServer.rpc('increment_product_stock', {
+      p_product_id: item.productId,
+      p_quantity: item.quantity,
+    });
+    if (error) console.error('restoreStock error:', error);
+  }
+}
+
+// Annule une commande non payée et remet ses articles en stock.
+export async function cancelOrder(id: string) {
+  const supabaseServer = await createClient();
+
+  // Le filtre sur le statut garantit qu'une commande n'est remise en stock qu'une seule fois.
+  const { data: cancelled, error } = await supabaseServer
+    .from('orders')
+    .update({ status: 'cancelled' })
+    .eq('id', id)
+    .in('status', ['pending', 'verifying'])
+    .select('id, order_items(product_id, quantity)')
+    .maybeSingle();
+  if (error) throw error;
+  if (!cancelled) throw new Error('Seules les commandes non payées peuvent être annulées.');
+
+  await restoreStock(
+    supabaseServer,
+    (cancelled.order_items || [])
+      .filter((i: any) => i.product_id)
+      .map((i: any) => ({ productId: i.product_id, quantity: i.quantity }))
+  );
+  return cancelled;
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus) {

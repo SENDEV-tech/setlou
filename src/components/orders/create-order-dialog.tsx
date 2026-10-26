@@ -33,6 +33,7 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const total = (selectedProduct?.price_xof || 0) * quantity + deliveryFee;
+  const maxQuantity = selectedProduct?.stock_quantity ?? undefined;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -129,8 +130,11 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {products.map(p => (
-                          <SelectItem key={p.id} value={p.id}>
+                          <SelectItem key={p.id} value={p.id} disabled={p.stock_quantity === 0}>
                             {p.name} - {formatXOF(p.price_xof)}
+                            {p.stock_quantity === 0
+                              ? " (épuisé)"
+                              : p.stock_quantity != null ? ` (${p.stock_quantity} en stock)` : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -142,8 +146,9 @@ export function CreateOrderDialog({ products }: CreateOrderDialogProps) {
                         <Input 
                           id="quantity" 
                           type="number" 
-                          min="1" 
-                          value={quantity} 
+                          min="1"
+                          max={maxQuantity}
+                          value={quantity}
                           onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} 
                           required 
                           className="bg-muted/50 border-transparent focus-visible:bg-transparent"
