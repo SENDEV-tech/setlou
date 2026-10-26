@@ -33,15 +33,16 @@ export async function updateShopSettingsAction(formData: FormData) {
       }
     }
 
-    const payload: Record<string, any> = {
-      name,
-      whatsapp_number,
-      brand_color,
-      welcome_message,
-      thank_you_message,
-      shop_tagline: shop_tagline || null,
-      shop_style,
-    };
+    // Les onglets non affichés ne sont pas dans le formulaire : on ne met à jour
+    // que les champs envoyés, pour ne pas effacer le nom, le numéro, etc.
+    const payload: Record<string, any> = { shop_style };
+    const present = (key: string) => formData.has(key);
+    if (present("name")) payload.name = name;
+    if (present("whatsapp_number")) payload.whatsapp_number = whatsapp_number;
+    if (present("brand_color")) payload.brand_color = brand_color;
+    if (present("welcome_message")) payload.welcome_message = welcome_message;
+    if (present("thank_you_message")) payload.thank_you_message = thank_you_message;
+    if (present("shop_tagline")) payload.shop_tagline = shop_tagline || null;
 
     if (coverBase64 && coverBase64.startsWith("data:image/")) {
       payload.cover_path = coverBase64;

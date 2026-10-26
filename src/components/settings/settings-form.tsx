@@ -153,7 +153,7 @@ export function SettingsForm({ shop }: SettingsFormProps) {
         </TabsList>
 
         <div className="bg-card border rounded-xl p-4 sm:p-6 shadow-sm">
-          <TabsContent value="general" className="mt-0 space-y-6">
+          <TabsContent value="general" keepMounted className="mt-0 space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Informations de la boutique</h3>
               
@@ -172,7 +172,7 @@ export function SettingsForm({ shop }: SettingsFormProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="customization" className="mt-0 space-y-6">
+          <TabsContent value="customization" keepMounted className="mt-0 space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Identité Visuelle</h3>
               
@@ -329,7 +329,7 @@ export function SettingsForm({ shop }: SettingsFormProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="messaging" className="mt-0 space-y-6">
+          <TabsContent value="messaging" keepMounted className="mt-0 space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Messages par défaut</h3>
               
