@@ -146,7 +146,7 @@ export function ShopClient({ shop, products }: { shop: PublicShop; products: Pub
         />
         <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/10" />
         <div className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-white/10" />
-        <div className="relative max-w-5xl mx-auto px-4 pt-10 pb-20 text-center text-white flex flex-col items-center">
+        <div className="relative max-w-5xl mx-auto px-4 pt-10 pb-14 text-center text-white flex flex-col items-center">
           <Logo size="lg" />
           <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight">{shop.name}</h1>
           <p className="mt-2 text-white/90 max-w-md text-sm sm:text-base">
@@ -166,7 +166,7 @@ export function ShopClient({ shop, products }: { shop: PublicShop; products: Pub
         </div>
       </section>
 
-      <main className="relative max-w-5xl mx-auto px-4 -mt-10 pb-36">
+      <main className="relative max-w-5xl mx-auto px-4 pt-8 sm:pt-10 pb-36">
         {/* Recherche */}
         {products.length > 3 && (
           <div className="relative mb-5">
