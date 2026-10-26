@@ -91,14 +91,9 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     }
   };
 
-  const isPaid = selectedOrder?.status === 'paid';
-  const greeting = `Bonjour${customerName !== "Client" ? ` ${customerName}` : ""}`;
-
-  const whatsappMessage = !selectedOrder
-    ? ""
-    : isPaid
-      ? `${greeting}, nous avons bien reçu votre paiement de ${formatXOF(selectedOrder.total_xof)} pour la commande ${selectedOrder.reference}. Merci ! Voici votre reçu : ${selectedPaymentLink}`
-      : `${greeting}, voici le lien de paiement sécurisé pour votre commande ${selectedOrder.reference} d'un montant de ${formatXOF(selectedOrder.total_xof)} : ${selectedPaymentLink}`;
+  const whatsappMessage = selectedOrder
+    ? `Bonjour ${customerName !== "Client" ? customerName : ""}, voici le lien de paiement sécurisé pour votre commande ${selectedOrder.reference} d'un montant de ${formatXOF(selectedOrder.total_xof)} : ${selectedPaymentLink}`
+    : "";
 
   const whatsappUrl = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`
@@ -159,24 +154,21 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                     >
                       <Link2 className="h-4 w-4" />
                     </Button>
-                    {(order.status === 'pending' || order.status === 'verifying') && (
+                    {order.status === 'verifying' && (
                       <Button 
                         size="sm" 
                         className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white ml-1"
-                        title="Confirmer que l'argent est bien arrivé"
                         onClick={async () => {
                           const loadingToast = toast.loading("Validation en cours...");
                           const result = await validateOrderPaymentAction(order.id);
                           if (result.success) {
-                            toast.success("Paiement validé ! Le lien du client affiche maintenant son reçu.", { id: loadingToast });
-                            // Ouvre la fiche pour envoyer le reçu au client sur WhatsApp.
-                            setSelectedOrder({ ...order, status: 'paid', paid_at: new Date().toISOString() });
+                            toast.success("Paiement validé !", { id: loadingToast });
                           } else {
                             toast.error("Erreur", { id: loadingToast });
                           }
                         }}
                       >
-                        Paiement reçu
+                        Valider
                       </Button>
                     )}
                     {(order.status === 'pending' || order.status === 'verifying') && (
@@ -229,9 +221,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                   {selectedOrder.reference}
                 </DialogTitle>
                 <DialogDescription>
-                  {isPaid
-                    ? "Paiement reçu. Envoyez le reçu à votre client."
-                    : "Lien de paiement sécurisé et récapitulatif pour ce client."}
+                  Lien de paiement sécurisé et récapitulatif pour ce client.
                 </DialogDescription>
               </DialogHeader>
 
@@ -272,7 +262,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
               {/* Lien de paiement & Bouton Copier */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-foreground">
-                  {isPaid ? "Lien du reçu" : "Lien de paiement sécurisé"}
+                  Lien de paiement sécurisé
                 </label>
                 <div className="p-3 bg-muted/60 rounded-xl flex items-center gap-2 border shadow-inner">
                   <span className="text-xs font-mono truncate select-all flex-1 text-left font-medium">
@@ -310,7 +300,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                   })}
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
-                  {isPaid ? "Envoyer le reçu" : "Envoyer sur WhatsApp"}
+                  Envoyer sur WhatsApp
                 </a>
                 <a
                   href={selectedPaymentLink}
