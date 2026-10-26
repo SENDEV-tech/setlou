@@ -535,7 +535,7 @@ export async function getPublicShop(slug: string) {
 
   const { data: shop, error } = await adminClient
     .from('shops')
-    .select('id, name, slug, logo_path, brand_color, welcome_message')
+    .select('id, name, slug, logo_path, brand_color, welcome_message, whatsapp_number')
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw error;
