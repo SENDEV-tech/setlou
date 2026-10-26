@@ -533,13 +533,28 @@ export async function getPublicShop(slug: string) {
   const { createAdminClient } = await import('@/utils/supabase/admin');
   const adminClient = createAdminClient();
 
-  const { data: shop, error } = await adminClient
+  // '*' puis tri des champs : la page reste debout même si boutique_style.sql
+  // n'a pas encore été exécuté, sans envoyer les champs privés au navigateur.
+  const { data: row, error } = await adminClient
     .from('shops')
-    .select('id, name, slug, logo_path, brand_color, welcome_message, whatsapp_number')
+    .select('*')
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw error;
-  if (!shop) return null;
+  if (!row) return null;
+
+  const shop = {
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    logo_path: (row.logo_path ?? null) as string | null,
+    brand_color: (row.brand_color ?? null) as string | null,
+    welcome_message: (row.welcome_message ?? null) as string | null,
+    whatsapp_number: (row.whatsapp_number ?? null) as string | null,
+    cover_path: (row.cover_path ?? null) as string | null,
+    shop_tagline: (row.shop_tagline ?? null) as string | null,
+    shop_style: (row.shop_style ?? null) as string | null,
+  };
 
   const { data: products, error: productsErr } = await adminClient
     .from('products')
