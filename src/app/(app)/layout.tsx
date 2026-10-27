@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { logoutAction } from "@/app/actions/auth";
 import { LogOut } from "lucide-react";
+import { OrderNotifier } from "@/components/notifications/order-notifier";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -59,6 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </SidebarInset>
       <MobileNav profile={profile} />
+      <OrderNotifier shopId={shopId} />
     </SidebarProvider>
   );
 }
