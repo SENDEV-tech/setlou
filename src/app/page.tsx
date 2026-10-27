@@ -122,7 +122,7 @@ const faqs = [
     a: "Non. Vous continuez à vendre sur votre WhatsApp habituel. Setlou vous donne simplement un lien à envoyer et un tableau de bord pour suivre vos ventes.",
   },
   {
-    q: "Que se passe-t-il après l'essai de 14 jours ?",
+    q: "Que se passe-t-il après l'essai de 20 jours ?",
     a: "Votre boutique est mise en pause jusqu'à ce que vous choisissiez un plan. Vos produits et vos commandes sont conservés.",
   },
 ];
@@ -296,7 +296,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-7 text-base" })}>
-                Essayer 14 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+                Essayer 20 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
               <Link
                 href="#comment"
@@ -404,7 +404,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
               <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Des tarifs simples</h2>
-              <p className="mt-3 text-muted-foreground">14 jours d&apos;essai gratuit sur tous les plans.</p>
+              <p className="mt-3 text-muted-foreground">20 jours d&apos;essai gratuit sur tous les plans.</p>
             </div>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {plans.map((plan) => (
@@ -482,7 +482,7 @@ export default function LandingPage() {
                 className: "mt-8 h-12 rounded-full px-8 text-base",
               })}
             >
-              Essayer 14 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+              Essayer 20 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
         </section>

@@ -35,7 +35,7 @@ export default async function AbonnementPage() {
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold tracking-tight">Choisissez votre plan</h1>
           <p className="text-muted-foreground text-lg">
-            Profitez de 14 jours d'essai gratuit. L'abonnement est requis pour accéder à l'application.
+            Profitez de 20 jours d'essai gratuit. L'abonnement est requis pour accéder à l'application.
           </p>
         </div>
 
