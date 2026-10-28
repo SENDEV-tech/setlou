@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { logoutAction } from "@/app/actions/auth";
 import { LogOut } from "lucide-react";
 import { OrderNotifier } from "@/components/notifications/order-notifier";
+import { expireWaveSubscription } from "@/server/data/wave";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -15,6 +16,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const headersList = await headers();
   const pathname = headersList.get("x-invoke-path") || "";
+
+  // Un abonnement payé avec Wave dure 30 jours : à échéance, la boutique repasse en impayé.
+  if (
+    shop.subscription_provider === "wave" &&
+    shop.subscription_status === "active" &&
+    shop.paid_until &&
+    new Date(shop.paid_until).getTime() < Date.now()
+  ) {
+    await expireWaveSubscription(shop.id);
+    shop.subscription_status = "past_due";
+  }
 
   // Subscription Enforcement for owners
   if (profile.role === "owner") {

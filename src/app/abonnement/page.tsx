@@ -4,7 +4,19 @@ import { Check, LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions/auth";
 
-export default async function AbonnementPage() {
+function WaveForm({ plan }: { plan: string }) {
+  return (
+    <form action="/api/wave/checkout" method="POST" className="mt-2">
+      <input type="hidden" name="plan" value={plan} />
+      <Button type="submit" className="w-full text-white hover:opacity-90" size="lg" style={{ backgroundColor: "#1DC4FF" }}>
+        Payer 1 mois avec Wave
+      </Button>
+    </form>
+  );
+}
+
+export default async function AbonnementPage(props: { searchParams: Promise<{ wave?: string }> }) {
+  const { wave } = await props.searchParams;
   const profile = await getCurrentProfile();
   if (profile.role !== "owner") {
     redirect("/commandes");
@@ -37,6 +49,24 @@ export default async function AbonnementPage() {
           <p className="text-muted-foreground text-lg">
             Profitez de 14 jours d'essai gratuit. L'abonnement est requis pour accéder à l'application.
           </p>
+          <p className="text-muted-foreground text-sm">
+            Avec Wave, vous payez 30 jours d'accès, sans essai ni prélèvement automatique, et vous renouvelez quand vous voulez.
+          </p>
+          {shop.subscription_provider === "wave" && shop.paid_until && (
+            <p className="text-sm font-medium">
+              Abonnement Wave payé jusqu'au {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
+            </p>
+          )}
+          {wave === "erreur" && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3 max-w-md mx-auto">
+              Le paiement Wave n'a pas abouti. Vous pouvez réessayer.
+            </p>
+          )}
+          {wave === "attente" && (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3 max-w-md mx-auto">
+              Paiement Wave en cours de confirmation. Actualisez cette page dans une minute.
+            </p>
+          )}
         </div>
 
       <div className="grid md:grid-cols-3 gap-8 pt-8 items-stretch">
@@ -60,12 +90,15 @@ export default async function AbonnementPage() {
             </ul>
           </div>
           
-          <form action="/api/stripe/checkout" method="POST">
-            <input type="hidden" name="plan" value="starter" />
-            <Button type="submit" variant="outline" className="w-full" size="lg">
-              Commencer l'essai gratuit
-            </Button>
-          </form>
+          <div>
+            <form action="/api/stripe/checkout" method="POST">
+              <input type="hidden" name="plan" value="starter" />
+              <Button type="submit" variant="outline" className="w-full" size="lg">
+                Commencer l'essai gratuit
+              </Button>
+            </form>
+            <WaveForm plan="starter" />
+          </div>
         </div>
 
         {/* Pro Plan */}
@@ -93,12 +126,15 @@ export default async function AbonnementPage() {
             </ul>
           </div>
           
-          <form action="/api/stripe/checkout" method="POST">
-            <input type="hidden" name="plan" value="pro" />
-            <Button type="submit" className="w-full shadow-md" size="lg">
-              Commencer l'essai gratuit
-            </Button>
-          </form>
+          <div>
+            <form action="/api/stripe/checkout" method="POST">
+              <input type="hidden" name="plan" value="pro" />
+              <Button type="submit" className="w-full shadow-md" size="lg">
+                Commencer l'essai gratuit
+              </Button>
+            </form>
+            <WaveForm plan="pro" />
+          </div>
         </div>
 
         {/* Enterprise Plan */}
@@ -120,12 +156,15 @@ export default async function AbonnementPage() {
             </ul>
           </div>
           
-          <form action="/api/stripe/checkout" method="POST">
-            <input type="hidden" name="plan" value="entreprise" />
-            <Button type="submit" variant="outline" className="w-full" size="lg">
-              Commencer l'essai gratuit
-            </Button>
-          </form>
+          <div>
+            <form action="/api/stripe/checkout" method="POST">
+              <input type="hidden" name="plan" value="entreprise" />
+              <Button type="submit" variant="outline" className="w-full" size="lg">
+                Commencer l'essai gratuit
+              </Button>
+            </form>
+            <WaveForm plan="entreprise" />
+          </div>
         </div>
       </div>
       </main>

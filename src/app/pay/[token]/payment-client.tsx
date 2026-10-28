@@ -5,24 +5,12 @@ import { formatXOF } from "@/lib/money";
 import { CheckCircle2, Copy, ShieldCheck, Smartphone, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markAsVerifyingAction } from "@/app/actions/order";
-import { startWavePaymentAction } from "@/app/actions/wave";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function PaymentClient({
-  order,
-  token,
-  waveEnabled,
-  waveError,
-}: {
-  order: any;
-  token: string;
-  waveEnabled: boolean;
-  waveError: boolean;
-}) {
+export function PaymentClient({ order, token }: { order: any; token: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [waveLoading, setWaveLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const isAlreadyPaid = order.status === "paid";
@@ -47,18 +35,6 @@ export function PaymentClient({
       router.refresh(); // Refresh the server component to get new order status
     } else {
       toast.error("Une erreur est survenue.");
-    }
-  };
-
-  const handleWave = async () => {
-    setWaveLoading(true);
-    const result = await startWavePaymentAction(token);
-    if (result.ok) {
-      // Navigation complète : Wave doit s'ouvrir dans le navigateur, pas dans une webview.
-      window.location.href = result.data.launchUrl;
-    } else {
-      setWaveLoading(false);
-      toast.error(result.error);
     }
   };
 
@@ -151,33 +127,6 @@ export function PaymentClient({
           )}
         </div>
 
-        {waveEnabled && (
-          <div className="space-y-3">
-            {waveError && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3 text-center">
-                Le paiement Wave n'a pas abouti. Vous pouvez réessayer.
-              </p>
-            )}
-            <Button
-              className="w-full h-14 text-lg font-bold rounded-xl text-white shadow-lg hover:opacity-90"
-              style={{ backgroundColor: "#1DC4FF" }}
-              onClick={handleWave}
-              disabled={waveLoading}
-            >
-              {waveLoading ? "Ouverture de Wave..." : "Payer avec Wave"}
-            </Button>
-            <p className="text-center text-xs text-slate-400 flex items-center justify-center gap-1">
-              <ShieldCheck className="w-4 h-4" />
-              Paiement confirmé automatiquement
-            </p>
-            <div className="flex items-center gap-3 text-xs text-slate-400 pt-2">
-              <div className="h-px flex-1 bg-slate-200" />
-              ou par transfert
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-          </div>
-        )}
-
         {/* Payment Instructions */}
         <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 space-y-4">
           <div className="flex gap-3">
@@ -204,8 +153,7 @@ export function PaymentClient({
         {/* Action */}
         <div className="pt-2">
           <Button 
-            variant={waveEnabled ? "outline" : "default"}
-            className={waveEnabled ? "w-full h-12 font-semibold rounded-xl" : "w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/25"}
+            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/25" 
             onClick={handleConfirm}
             disabled={loading}
           >

@@ -1,14 +1,27 @@
 import 'server-only';
 
-import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { headers } from 'next/headers';
 import { createAdminClient } from '@/utils/supabase/admin';
 
-// Wave Checkout : chaque boutique encaisse sur son propre compte Wave Business.
+// Abonnements Setlou payés avec Wave Checkout, encaissés sur le compte Wave Business de Setlou.
 // Doc : https://docs.wave.com/checkout et https://docs.wave.com/webhook
 
 const WAVE_API = 'https://api.wave.com/v1';
 const SIGNATURE_MAX_AGE_SECONDS = 5 * 60;
+export const WAVE_PERIOD_DAYS = 30;
+
+export const WAVE_PLANS = {
+  starter: { priceXof: 4900, monthlyLimit: 100, maxAssistants: 1 },
+  pro: { priceXof: 9900, monthlyLimit: null, maxAssistants: 5 },
+  entreprise: { priceXof: 19900, monthlyLimit: null, maxAssistants: null },
+} as const;
+
+export type WavePlan = keyof typeof WAVE_PLANS;
+
+export function isWavePlan(value: unknown): value is WavePlan {
+  return typeof value === 'string' && value in WAVE_PLANS;
+}
 
 export type WaveCheckoutSession = {
   id: string;
@@ -27,15 +40,7 @@ export type WaveEvent = {
   data: WaveCheckoutSession;
 };
 
-type WaveSettingsRow = {
-  shop_id: string;
-  api_key_enc: string;
-  webhook_secret_enc: string;
-  api_key_last4: string;
-  enabled: boolean;
-};
-
-// URL publique du site : Wave exige des URL https pour le retour et le webhook.
+// URL publique du site : Wave exige des URL https pour le retour.
 export async function getAppOrigin(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_APP_URL;
   if (configured?.startsWith('https://')) return configured.replace(/\/$/, '');
@@ -43,77 +48,9 @@ export async function getAppOrigin(): Promise<string> {
   return `${h.get('x-forwarded-proto') || 'https'}://${h.get('x-forwarded-host') || h.get('host')}`;
 }
 
-// --- Chiffrement des clés (AES-256-GCM) ---
-
-function secretsKey(): Buffer {
-  const raw = process.env.WAVE_SECRETS_KEY;
-  if (!raw) throw new Error('WAVE_SECRETS_KEY manquante.');
-  const key = Buffer.from(raw, 'base64');
-  if (key.length !== 32) throw new Error('WAVE_SECRETS_KEY doit faire 32 octets en base64.');
-  return key;
-}
-
-function encrypt(plain: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', secretsKey(), iv);
-  const data = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
-  return [iv, cipher.getAuthTag(), data].map((b) => b.toString('base64')).join('.');
-}
-
-function decrypt(payload: string): string {
-  const [iv, tag, data] = payload.split('.').map((p) => Buffer.from(p, 'base64'));
-  const decipher = createDecipheriv('aes-256-gcm', secretsKey(), iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
-}
-
-// --- Réglages Wave d'une boutique ---
-
-async function getSettingsRow(shopId: string): Promise<WaveSettingsRow | null> {
-  const { data, error } = await createAdminClient()
-    .from('shop_wave_settings')
-    .select('shop_id, api_key_enc, webhook_secret_enc, api_key_last4, enabled')
-    .eq('shop_id', shopId)
-    .maybeSingle();
-  if (error) {
-    console.error('getWaveSettings error:', error);
-    return null;
-  }
-  return data as WaveSettingsRow | null;
-}
-
-// Ce que l'interface peut afficher : jamais les clés elles-mêmes.
-export async function getWaveStatus(shopId: string): Promise<{ connected: boolean; apiKeyLast4: string | null }> {
-  const row = await getSettingsRow(shopId);
-  return { connected: !!row?.enabled, apiKeyLast4: row?.api_key_last4 ?? null };
-}
-
-export async function isWaveEnabled(shopId: string): Promise<boolean> {
-  return (await getWaveStatus(shopId)).connected;
-}
-
-export async function saveWaveSettings(shopId: string, apiKey: string, webhookSecret: string) {
-  const { error } = await createAdminClient()
-    .from('shop_wave_settings')
-    .upsert({
-      shop_id: shopId,
-      api_key_enc: encrypt(apiKey),
-      webhook_secret_enc: encrypt(webhookSecret),
-      api_key_last4: apiKey.slice(-4),
-      enabled: true,
-      updated_at: new Date().toISOString(),
-    });
-  if (error) throw error;
-}
-
-export async function deleteWaveSettings(shopId: string) {
-  const { error } = await createAdminClient().from('shop_wave_settings').delete().eq('shop_id', shopId);
-  if (error) throw error;
-}
-
-// --- API Wave ---
-
-async function waveFetch<T>(apiKey: string, path: string, init?: RequestInit): Promise<T> {
+async function waveFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const apiKey = process.env.WAVE_API_KEY;
+  if (!apiKey) throw new Error('WAVE_API_KEY manquante.');
   const res = await fetch(`${WAVE_API}${path}`, {
     ...init,
     headers: {
@@ -125,62 +62,47 @@ async function waveFetch<T>(apiKey: string, path: string, init?: RequestInit): P
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new WaveApiError(res.status, body);
+    throw new Error(`Wave API ${res.status}: ${body.slice(0, 300)}`);
   }
   return (await res.json()) as T;
 }
 
-export class WaveApiError extends Error {
-  constructor(public status: number, body: string) {
-    super(`Wave API ${status}: ${body.slice(0, 300)}`);
-  }
+// client_reference = "<shopId>:<plan>:<nonce>" ; le nonce permet de retrouver
+// la session au retour du client (Wave n'ajoute pas son id à l'URL de succès).
+function parseReference(ref: string | null): { shopId: string; plan: WavePlan } | null {
+  const [shopId, plan] = (ref ?? '').split(':');
+  if (!shopId || !isWavePlan(plan)) return null;
+  return { shopId, plan };
 }
 
-// Vérifie qu'une clé est acceptée par Wave avant de l'enregistrer.
-export async function checkWaveApiKey(apiKey: string): Promise<boolean> {
-  try {
-    await waveFetch(apiKey, '/checkout/sessions/search?client_reference=setlou-test');
-    return true;
-  } catch (error) {
-    if (error instanceof WaveApiError && (error.status === 401 || error.status === 403)) return false;
-    // Autre erreur (réseau, 404...) : on ne bloque pas l'enregistrement.
-    console.error('checkWaveApiKey:', error);
-    return true;
-  }
-}
-
-export async function createWaveCheckout(
-  shopId: string,
-  params: { amountXof: number; orderId: string; successUrl: string; errorUrl: string }
-): Promise<WaveCheckoutSession> {
-  const row = await getSettingsRow(shopId);
-  if (!row?.enabled) throw new Error('Wave non connecté pour cette boutique.');
-  return waveFetch<WaveCheckoutSession>(decrypt(row.api_key_enc), '/checkout/sessions', {
+export async function createSubscriptionCheckout(shopId: string, plan: WavePlan): Promise<string> {
+  const origin = await getAppOrigin();
+  const reference = `${shopId}:${plan}:${randomBytes(8).toString('hex')}`;
+  const session = await waveFetch<WaveCheckoutSession>('/checkout/sessions', {
     method: 'POST',
     body: JSON.stringify({
-      amount: String(Math.round(params.amountXof)),
+      amount: String(WAVE_PLANS[plan].priceXof),
       currency: 'XOF',
-      client_reference: params.orderId,
-      success_url: params.successUrl,
-      error_url: params.errorUrl,
+      client_reference: reference,
+      success_url: `${origin}/api/wave/success?ref=${encodeURIComponent(reference)}`,
+      error_url: `${origin}/abonnement?wave=erreur`,
     }),
   });
+  return session.wave_launch_url;
 }
 
-export async function getWaveCheckout(shopId: string, checkoutId: string): Promise<WaveCheckoutSession | null> {
-  const row = await getSettingsRow(shopId);
-  if (!row?.enabled) return null;
-  return waveFetch<WaveCheckoutSession>(decrypt(row.api_key_enc), `/checkout/sessions/${encodeURIComponent(checkoutId)}`);
+export async function findCheckoutByReference(reference: string): Promise<WaveCheckoutSession | null> {
+  const result = await waveFetch<{ result: WaveCheckoutSession[] }>(
+    `/checkout/sessions/search?client_reference=${encodeURIComponent(reference)}`
+  );
+  return result.result.find((s) => s.payment_status === 'succeeded') ?? result.result[0] ?? null;
 }
-
-// --- Webhook ---
 
 // En-tête « Wave-Signature: t=<timestamp>,v1=<hex>[,v1=<hex>] »,
 // signature = HMAC-SHA256(secret, timestamp + corps brut).
-export async function verifyWaveWebhook(shopId: string, rawBody: string, signatureHeader: string | null): Promise<boolean> {
-  if (!signatureHeader) return false;
-  const row = await getSettingsRow(shopId);
-  if (!row) return false;
+export function verifyWaveWebhook(rawBody: string, signatureHeader: string | null): boolean {
+  const secret = process.env.WAVE_WEBHOOK_SECRET;
+  if (!secret || !signatureHeader) return false;
 
   const parts = signatureHeader.split(',').map((p) => p.trim().split('='));
   const timestamp = parts.find(([k]) => k === 't')?.[1];
@@ -190,52 +112,74 @@ export async function verifyWaveWebhook(shopId: string, rawBody: string, signatu
   const age = Math.abs(Date.now() / 1000 - Number(timestamp));
   if (!Number.isFinite(age) || age > SIGNATURE_MAX_AGE_SECONDS) return false;
 
-  const expected = createHmac('sha256', decrypt(row.webhook_secret_enc))
-    .update(timestamp + rawBody)
-    .digest();
+  const expected = createHmac('sha256', secret).update(timestamp + rawBody).digest();
   return signatures.some((sig) => {
     const given = Buffer.from(sig, 'hex');
     return given.length === expected.length && timingSafeEqual(given, expected);
   });
 }
 
-// Marque la commande payée si la session Wave est réglée pour le bon montant.
-// Idempotent : ne touche qu'une commande encore en attente.
-export async function applyWaveCheckout(shopId: string, session: WaveCheckoutSession): Promise<boolean> {
-  if (session.payment_status !== 'succeeded' || !session.client_reference) return false;
+// Active ou prolonge l'abonnement de 30 jours pour une session Wave réglée.
+// Idempotent : un même paiement (id de session) ne compte qu'une fois.
+export async function applySubscriptionPayment(session: WaveCheckoutSession): Promise<boolean> {
+  if (session.payment_status !== 'succeeded') return false;
+  const ref = parseReference(session.client_reference);
+  if (!ref) return false;
+
+  const plan = WAVE_PLANS[ref.plan];
+  if (session.currency !== 'XOF' || Number(session.amount) !== plan.priceXof) {
+    console.error('Wave abonnement : montant inattendu', session.id, session.amount, ref.plan);
+    return false;
+  }
 
   const adminClient = createAdminClient();
-  const { data: order, error } = await adminClient
-    .from('orders')
-    .select('id, total_xof, status')
-    .eq('id', session.client_reference)
-    .eq('shop_id', shopId)
-    .maybeSingle();
-  if (error || !order) {
-    console.error('applyWaveCheckout: commande introuvable', session.client_reference, error);
+  const { data: inserted, error: insertError } = await adminClient
+    .from('subscription_payments')
+    .upsert(
+      {
+        id: session.id,
+        shop_id: ref.shopId,
+        plan: ref.plan,
+        amount_xof: plan.priceXof,
+        provider: 'wave',
+        transaction_id: session.transaction_id,
+      },
+      { onConflict: 'id', ignoreDuplicates: true }
+    )
+    .select('id');
+  if (insertError) {
+    console.error('Wave abonnement : enregistrement du paiement', insertError);
     return false;
   }
+  if (!inserted?.length) return true; // déjà pris en compte
 
-  if (session.currency !== 'XOF' || Number(session.amount) !== order.total_xof) {
-    console.error('applyWaveCheckout: montant différent', session.id, session.amount, order.total_xof);
-    return false;
-  }
+  const { data: shop } = await adminClient.from('shops').select('paid_until').eq('id', ref.shopId).single();
+  const start = Math.max(Date.now(), shop?.paid_until ? new Date(shop.paid_until).getTime() : 0);
+  const paidUntil = new Date(start + WAVE_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  const { error: updateError } = await adminClient
-    .from('orders')
+  const { error } = await adminClient
+    .from('shops')
     .update({
-      status: 'paid',
-      paid_at: new Date().toISOString(),
-      paid_via: 'wave',
-      provider: 'wave',
-      wave_checkout_id: session.id,
-      wave_transaction_id: session.transaction_id,
+      subscription_status: 'active',
+      subscription_plan: ref.plan,
+      subscription_provider: 'wave',
+      paid_until: paidUntil,
+      monthly_orders_limit: plan.monthlyLimit,
+      max_assistants: plan.maxAssistants,
     })
-    .eq('id', order.id)
-    .in('status', ['pending', 'verifying', 'expired']);
-  if (updateError) {
-    console.error('applyWaveCheckout update error:', updateError);
+    .eq('id', ref.shopId);
+  if (error) {
+    console.error('Wave abonnement : mise à jour de la boutique', error);
     return false;
   }
   return true;
+}
+
+// Abonnement Wave arrivé à échéance : la boutique repasse en impayé.
+export async function expireWaveSubscription(shopId: string) {
+  await createAdminClient()
+    .from('shops')
+    .update({ subscription_status: 'past_due' })
+    .eq('id', shopId)
+    .eq('subscription_provider', 'wave');
 }
