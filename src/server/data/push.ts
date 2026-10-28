@@ -97,12 +97,13 @@ async function sendToShop(shopId: string, payload: PushPayload, onlyUserId?: str
 
 export async function notifyNewShopOrder(order: { id: string, shop_id: string, reference: string, total_xof: number, snapshot: { name?: string } | null }) {
   const name = order.snapshot?.name || 'Un client';
-  await sendToShop(order.shop_id, {
+  const sent = await sendToShop(order.shop_id, {
     title: `Nouvelle commande ${order.reference}`,
     body: `${name} · ${formatXOF(order.total_xof)}`,
     url: '/commandes',
     tag: `order-${order.id}`,
   });
+  console.log(`Push commande ${order.reference} : ${sent} appareil(s).`);
 }
 
 export async function sendTestPush(userId: string, shopId: string) {
