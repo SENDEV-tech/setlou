@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -80,7 +81,10 @@ export async function signupAction(formData: FormData) {
   }
 
   // 2. Create Shop
-  const { data: shopData, error: shopError } = await supabase
+  // Clé service_role : la RLS interdit ces insertions depuis le navigateur, et
+  // aucune session n'existe encore si l'email doit être confirmé.
+  const adminClient = createAdminClient();
+  const { data: shopData, error: shopError } = await adminClient
     .from("shops")
     .insert({
       owner_id: authData.user.id,
@@ -99,7 +103,7 @@ export async function signupAction(formData: FormData) {
   }
 
   // 3. Create Owner Profile
-  const { error: profileError } = await supabase
+  const { error: profileError } = await adminClient
     .from("profiles")
     .insert({
       id: authData.user.id,
@@ -113,6 +117,7 @@ export async function signupAction(formData: FormData) {
     });
 
   if (profileError) {
+    await adminClient.from("shops").delete().eq("id", shopData.id);
     return { error: "Erreur lors de la création du profil." };
   }
 
