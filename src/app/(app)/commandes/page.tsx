@@ -1,6 +1,7 @@
 import { getOrders, getProducts, updateOrderStatus } from "@/server/data/supabase-store";
 import { OrdersTable } from "@/components/orders/orders-table";
 import { CreateOrderDialog } from "@/components/orders/create-order-dialog";
+import { NotificationSettings } from "@/components/notifications/notification-settings";
 
 
 export default async function OrdersPage(props: { searchParams: Promise<{ status?: string }> }) {
@@ -20,6 +21,7 @@ export default async function OrdersPage(props: { searchParams: Promise<{ status
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <NotificationSettings />
           <CreateOrderDialog products={products} />
         </div>
       </div>

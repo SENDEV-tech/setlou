@@ -38,6 +38,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/signup") ||
     request.nextUrl.pathname.startsWith("/pay") ||
     request.nextUrl.pathname.startsWith("/boutique") ||
+    request.nextUrl.pathname === "/sw.js" ||
+    request.nextUrl.pathname === "/manifest.webmanifest" ||
     request.nextUrl.pathname.startsWith("/api/stripe");
 
   if (!user && !isPublicPath) {
