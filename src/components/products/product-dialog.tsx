@@ -135,6 +135,12 @@ export function ProductDialog({ product, open: controlledOpen, onOpenChange, tri
             </div>
 
             <div className="space-y-2">
+              <label htmlFor="stock" className="text-sm font-medium">Quantité en stock</label>
+              <Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock_quantity ?? undefined} placeholder="Ex: 20" required />
+              <p className="text-xs text-muted-foreground">Le stock baisse automatiquement à chaque commande.</p>
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="description" className="text-sm font-medium">Description (optionnel)</label>
               <Textarea 
                 id="description" 

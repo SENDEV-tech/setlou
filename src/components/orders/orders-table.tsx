@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatXOF } from "@/lib/money";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { validateOrderPaymentAction } from "@/app/actions/order";
+import { cancelOrderAction, validateOrderPaymentAction } from "@/app/actions/order";
 import { toast } from "sonner";
 import { useState } from "react";
 import {
@@ -21,7 +21,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Copy, Check, MessageCircle, ExternalLink, Link2, User, Phone } from "lucide-react";
+import { Copy, Check, MessageCircle, ExternalLink, Link2, User, Phone, XCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface OrdersTableProps {
   orders: any[];
@@ -30,6 +40,17 @@ interface OrdersTableProps {
 export function OrdersTable({ orders }: OrdersTableProps) {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState<any | null>(null);
+
+  const handleCancel = async (order: any) => {
+    const loadingToast = toast.loading("Annulation en cours...");
+    const result = await cancelOrderAction(order.id);
+    if (result.success) {
+      toast.success("Commande annulée, les articles sont remis en stock.", { id: loadingToast });
+    } else {
+      toast.error(result.error || "Erreur", { id: loadingToast });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -148,6 +169,17 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                         }}
                       >
                         Valider
+                      </Button>
+                    )}
+                    {(order.status === 'pending' || order.status === 'verifying') && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setCancellingOrder(order)}
+                        title="Annuler la commande"
+                      >
+                        <XCircle className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
@@ -288,6 +320,31 @@ export function OrdersTable({ orders }: OrdersTableProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!cancellingOrder} onOpenChange={(open) => {
+        if (!open) setCancellingOrder(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler la commande {cancellingOrder?.reference}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Le lien de paiement ne fonctionnera plus et les articles seront remis en stock.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Retour</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (cancellingOrder) handleCancel(cancellingOrder);
+                setCancellingOrder(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Annuler la commande
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

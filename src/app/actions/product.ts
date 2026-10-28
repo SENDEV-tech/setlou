@@ -7,13 +7,22 @@ import {
 } from "@/server/data/supabase-store";
 import { revalidatePath } from "next/cache";
 
+// Champ vide = stock non suivi (null). Renvoie undefined si la valeur est invalide.
+function parseStock(value: FormDataEntryValue | null): number | null | undefined {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (raw === "") return null;
+  const stock = Number(raw);
+  return Number.isInteger(stock) && stock >= 0 ? stock : undefined;
+}
+
 export async function createProductAction(formData: FormData) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const price = parseInt(formData.get("price") as string, 10);
+  const stock = parseStock(formData.get("stock"));
   const image = formData.get("image") as File | null;
 
-  if (!name || isNaN(price)) {
+  if (!name || isNaN(price) || stock === undefined) {
     throw new Error("Missing required fields or invalid price");
   }
 
@@ -27,6 +36,7 @@ export async function createProductAction(formData: FormData) {
     name,
     description,
     price,
+    stock,
     image_path
   });
 
@@ -40,9 +50,10 @@ export async function updateProductAction(id: string, formData: FormData) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const price = parseInt(formData.get("price") as string, 10);
+  const stock = parseStock(formData.get("stock"));
   const image = formData.get("image") as File | null;
 
-  if (!id || !name || isNaN(price)) {
+  if (!id || !name || isNaN(price) || stock === undefined) {
     throw new Error("Missing required fields or invalid price");
   }
 
@@ -56,6 +67,7 @@ export async function updateProductAction(id: string, formData: FormData) {
     name,
     description,
     price,
+    stock,
     image_path
   });
 
