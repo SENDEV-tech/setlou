@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/boutique") ||
     request.nextUrl.pathname === "/sw.js" ||
     request.nextUrl.pathname === "/manifest.webmanifest" ||
-    request.nextUrl.pathname.startsWith("/api/stripe");
+    request.nextUrl.pathname.startsWith("/api/stripe") ||
+    request.nextUrl.pathname.startsWith("/api/track");
 
   if (!user && !isPublicPath) {
     // no user, potentially respond by redirecting the user to the login page
