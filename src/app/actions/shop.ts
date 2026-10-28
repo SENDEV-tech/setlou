@@ -4,7 +4,6 @@ import { z } from "zod";
 import { createShopOrder, SHOP_ORDER_MAX_ITEMS, SHOP_ORDER_MAX_QUANTITY } from "@/server/data/supabase-store";
 import { notifyNewShopOrder } from "@/server/data/push";
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 
 const shopOrderSchema = z.object({
   slug: z.string().min(1),
@@ -35,14 +34,16 @@ export async function createShopOrderAction(input: ShopOrderInput) {
     revalidatePath(`/boutique/${parsed.data.slug}`);
     revalidatePath("/commandes");
     revalidatePath("/produits");
-    // Le push part après la réponse : le client n'attend pas l'envoi.
-    after(async () => {
-      try {
-        await notifyNewShopOrder(order);
-      } catch (error) {
-        console.error("Error sending order push:", error);
-      }
-    });
+    // Envoyé avant de répondre (au plus 5 s) pour que la fonction serverless
+    // ne s'arrête pas avant la fin de l'envoi.
+    try {
+      await Promise.race([
+        notifyNewShopOrder(order),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
+      ]);
+    } catch (error) {
+      console.error("Error sending order push:", error);
+    }
     return { ok: true as const, data: { paymentPath: `/pay/${order.token_hash}` } };
   } catch (error) {
     console.error("Error creating shop order:", error);

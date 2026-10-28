@@ -127,7 +127,7 @@ export function NotificationSettings() {
 
   return (
     <>
-      <Button variant="outline" size="lg" className="relative" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="lg" className={`relative ${pushOn ? "border-green-600 text-green-700 dark:text-green-400" : ""}`} onClick={() => setOpen(true)}>
         {pushOn ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
         <span className="hidden sm:inline">Notifications</span>
         {support === "ok" && !pushOn && (
@@ -147,9 +147,16 @@ export function NotificationSettings() {
           <div className="space-y-5">
             <div className="rounded-lg border p-4 space-y-3">
               <div className="flex items-start gap-3">
-                {pushOn ? <BellRing className="h-5 w-5 text-primary mt-0.5" /> : <BellOff className="h-5 w-5 text-muted-foreground mt-0.5" />}
+                {pushOn ? <BellRing className="h-5 w-5 text-green-600 mt-0.5" /> : <BellOff className="h-5 w-5 text-muted-foreground mt-0.5" />}
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Notifications sur cet appareil</p>
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    Notifications sur cet appareil
+                    {pushOn && (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                        Activées
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     Même quand Setlou est fermé, comme une notification WhatsApp.
                   </p>
