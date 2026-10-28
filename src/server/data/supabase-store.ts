@@ -1,5 +1,4 @@
 import 'server-only';
-import { supabase } from '@/lib/supabase';
 
 // Types (re-exported or redefined)
 export type Role = 'owner' | 'assistant';
@@ -85,7 +84,7 @@ export async function updateShopSettings(settings: any) {
 // --- PRODUCTS ---
 export async function getProducts(shopId?: string) {
   const sid = shopId || await getCurrentShopId();
-  const { data, error } = await supabase
+  const { data, error } = await (await createClient())
     .from('products')
     .select('*')
     .eq('shop_id', sid)
@@ -153,7 +152,7 @@ export async function deleteProduct(id: string) {
 // --- PROFILES ---
 export async function getShopProfiles() {
   const sid = await getCurrentShopId();
-  const { data, error } = await supabase
+  const { data, error } = await (await createClient())
     .from('profiles')
     .select('*')
     .eq('shop_id', sid)
@@ -252,7 +251,7 @@ export async function deleteProfile(id: string) {
 }
 
 export async function getProfileStats(profileId: string) {
-  const { data: orders, error } = await supabase
+  const { data: orders, error } = await (await createClient())
     .from('orders')
     .select('status')
     .eq('created_by', profileId);
@@ -271,7 +270,7 @@ export async function getProfileStats(profileId: string) {
 // --- ORDERS ---
 export async function getOrders(status?: OrderStatus) {
   const sid = await getCurrentShopId();
-  let query = supabase
+  let query = (await createClient())
     .from('orders')
     .select(`
       *,
@@ -293,7 +292,7 @@ export async function getOrders(status?: OrderStatus) {
 
 export async function getRecentOrders(shopId?: string, limit: number = 5) {
   const sid = shopId || await getCurrentShopId();
-  const { data, error } = await supabase
+  const { data, error } = await (await createClient())
     .from('orders')
     .select(`
       *,
@@ -309,7 +308,7 @@ export async function getRecentOrders(shopId?: string, limit: number = 5) {
 }
 
 export async function getOrder(id: string) {
-  const { data, error } = await supabase
+  const { data, error } = await (await createClient())
     .from('orders')
     .select(`
       *,
@@ -700,7 +699,7 @@ export async function getDashboardKPIs(shopId?: string, fromDate?: Date, toDate?
   const fromIso = from.toISOString();
 
   // Get all orders in date range
-  const { data: orders, error } = await supabase
+  const { data: orders, error } = await (await createClient())
     .from('orders')
     .select('*')
     .eq('shop_id', sid)
@@ -724,7 +723,7 @@ export async function getDashboardKPIs(shopId?: string, fromDate?: Date, toDate?
   const prevTo = new Date(from.getTime() - 1);
   const prevFrom = new Date(prevTo.getTime() - diffTime);
   
-  const { data: prevOrders } = await supabase
+  const { data: prevOrders } = await (await createClient())
     .from('orders')
     .select('*')
     .eq('shop_id', sid)
