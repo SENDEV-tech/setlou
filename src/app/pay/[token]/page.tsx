@@ -1,5 +1,6 @@
 import { getOrderByToken } from "@/server/data/supabase-store";
 import { formatXOF } from "@/lib/money";
+import { applyWaveCheckout, getWaveCheckout, isWaveEnabled } from "@/server/data/wave";
 import { PaymentClient } from "./payment-client";
 
 export const metadata = {
@@ -8,8 +9,12 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PayPage(props: { params: Promise<{ token: string }> }) {
+export default async function PayPage(props: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ wave?: string }>;
+}) {
   const params = await props.params;
+  const { wave } = await props.searchParams;
   const token = params.token;
   
   let order;
@@ -31,9 +36,25 @@ export default async function PayPage(props: { params: Promise<{ token: string }
     );
   }
 
+  const payable = ["pending", "verifying", "expired"].includes(order.status);
+
+  // Retour depuis Wave : on vérifie la session sans attendre le webhook.
+  if (payable && order.wave_checkout_id) {
+    try {
+      const session = await getWaveCheckout(order.shop_id, order.wave_checkout_id);
+      if (session && (await applyWaveCheckout(order.shop_id, session))) {
+        order = await getOrderByToken(token);
+      }
+    } catch (error) {
+      console.error("Wave sync error:", error);
+    }
+  }
+
+  const waveEnabled = payable && (await isWaveEnabled(order.shop_id));
+
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <PaymentClient order={order} token={token} />
+      <PaymentClient order={order} token={token} waveEnabled={waveEnabled} waveError={wave === "erreur"} />
     </main>
   );
 }
