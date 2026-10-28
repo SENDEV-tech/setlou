@@ -1,4 +1,5 @@
-import { getProducts } from "@/server/data/supabase-store";
+import { getProducts, getShop } from "@/server/data/supabase-store";
+import { ShopLinkCard } from "@/components/products/shop-link-card";
 import { ProductGrid } from "@/components/products/product-grid";
 import { ProductDialog } from "@/components/products/product-dialog";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ export default async function ProductsPage(props: { searchParams: Promise<{ q?: 
   const query = typeof searchParams.q === "string" ? searchParams.q.toLowerCase() : "";
   
   let products = await getProducts();
+  const shop = await getShop();
   
   if (query) {
     products = products.filter(p => p.name.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query));
@@ -25,6 +27,8 @@ export default async function ProductsPage(props: { searchParams: Promise<{ q?: 
         </div>
         <ProductDialog />
       </div>
+
+      {shop?.slug && <ShopLinkCard slug={shop.slug} shopName={shop.name} />}
 
       <div className="flex items-center space-x-2">
         <div className="relative flex-1 max-w-md">

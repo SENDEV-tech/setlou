@@ -525,6 +525,169 @@ export async function deleteOrder(id: string) {
   return true;
 }
 
+// --- LIEN BOUTIQUE (page publique, sans utilisateur connecté) ---
+export const SHOP_ORDER_MAX_ITEMS = 10;
+export const SHOP_ORDER_MAX_QUANTITY = 20;
+
+export async function getPublicShop(slug: string) {
+  const { createAdminClient } = await import('@/utils/supabase/admin');
+  const adminClient = createAdminClient();
+
+  // '*' puis tri des champs : la page reste debout même si boutique_style.sql
+  // n'a pas encore été exécuté, sans envoyer les champs privés au navigateur.
+  const { data: row, error } = await adminClient
+    .from('shops')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) throw error;
+  if (!row) return null;
+
+  const shop = {
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    logo_path: (row.logo_path ?? null) as string | null,
+    brand_color: (row.brand_color ?? null) as string | null,
+    welcome_message: (row.welcome_message ?? null) as string | null,
+    whatsapp_number: (row.whatsapp_number ?? null) as string | null,
+    cover_path: (row.cover_path ?? null) as string | null,
+    shop_tagline: (row.shop_tagline ?? null) as string | null,
+    shop_style: (row.shop_style ?? null) as string | null,
+  };
+
+  const { data: products, error: productsErr } = await adminClient
+    .from('products')
+    .select('id, name, description, price_xof, image_path, stock_quantity')
+    .eq('shop_id', shop.id)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false });
+  if (productsErr) throw productsErr;
+
+  return { shop, products: products || [] };
+}
+
+// Commande passée par le client lui-même depuis le lien boutique.
+export async function createShopOrder(data: { slug: string, customerName: string, customerPhone: string, items: { productId: string, quantity: number }[] }) {
+  const { createAdminClient } = await import('@/utils/supabase/admin');
+  const adminClient = createAdminClient();
+
+  const { data: shop } = await adminClient
+    .from('shops')
+    .select('id, monthly_orders_limit')
+    .eq('slug', data.slug)
+    .maybeSingle();
+  if (!shop) throw new Error('Boutique introuvable.');
+
+  if (shop.monthly_orders_limit !== null && shop.monthly_orders_limit !== undefined) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const { count: monthlyOrdersCount } = await adminClient
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', shop.id)
+      .gte('created_at', startOfMonth.toISOString());
+    if ((monthlyOrdersCount || 0) >= shop.monthly_orders_limit) {
+      throw new Error("Cette boutique ne prend plus de commandes en ligne ce mois-ci. Contactez-la directement sur WhatsApp.");
+    }
+  }
+
+  const { data: products } = await adminClient
+    .from('products')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .is('archived_at', null)
+    .in('id', data.items.map(i => i.productId));
+
+  let subtotal = 0;
+  const orderItems = [];
+  for (const item of data.items) {
+    const product = products?.find(p => p.id === item.productId);
+    if (!product) throw new Error("Un des produits n'est plus disponible.");
+    const lineTotal = product.price_xof * item.quantity;
+    subtotal += lineTotal;
+    orderItems.push({
+      product_id: product.id,
+      product_name: product.name,
+      unit_price_xof: product.price_xof,
+      quantity: item.quantity,
+      line_total_xof: lineTotal
+    });
+  }
+
+  const reserved: { productId: string, quantity: number }[] = [];
+  const releaseAll = async () => {
+    for (const r of reserved) {
+      const { error } = await adminClient.rpc('release_shop_stock', { p_shop_id: shop.id, p_product_id: r.productId, p_quantity: r.quantity });
+      if (error) console.error('release_shop_stock error:', error);
+    }
+  };
+
+  for (const item of orderItems) {
+    const { data: ok, error: stockErr } = await adminClient.rpc('reserve_shop_stock', {
+      p_shop_id: shop.id,
+      p_product_id: item.product_id,
+      p_quantity: item.quantity,
+    });
+    if (stockErr || !ok) {
+      await releaseAll();
+      if (stockErr) throw stockErr;
+      const left = products?.find(p => p.id === item.product_id)?.stock_quantity ?? 0;
+      throw new Error(left > 0
+        ? `Il ne reste que ${left} « ${item.product_name} ».`
+        : `« ${item.product_name} » est épuisé.`);
+    }
+    reserved.push({ productId: item.product_id, quantity: item.quantity });
+  }
+
+  try {
+    let customerId = null;
+    const { data: customer } = await adminClient.from('customers').select('id').eq('shop_id', shop.id).eq('phone', data.customerPhone).maybeSingle();
+    if (customer) {
+      customerId = customer.id;
+    } else {
+      const { data: newCustomer, error: custErr } = await adminClient.from('customers').insert([{
+        shop_id: shop.id,
+        phone: data.customerPhone,
+        full_name: data.customerName,
+      }]).select('id').single();
+      if (custErr) throw custErr;
+      customerId = newCustomer.id;
+    }
+
+    const { count } = await adminClient.from('orders').select('*', { count: 'exact', head: true }).eq('shop_id', shop.id);
+    const order = {
+      shop_id: shop.id,
+      reference: `CMD-${((count || 0) + 1).toString().padStart(5, '0')}`,
+      created_by: null,
+      customer_id: customerId,
+      snapshot: { name: data.customerName, phone: data.customerPhone, source: 'boutique' },
+      subtotal_xof: subtotal,
+      delivery_fee_xof: 0,
+      discount_xof: 0,
+      total_xof: subtotal,
+      status: 'pending',
+      token_hash: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+    };
+
+    const { data: newOrder, error: orderErr } = await adminClient.from('orders').insert([order]).select().single();
+    if (orderErr) throw orderErr;
+
+    const { error: itemsErr } = await adminClient.from('order_items').insert(orderItems.map(i => ({ ...i, order_id: newOrder.id })));
+    if (itemsErr) {
+      await adminClient.from('orders').delete().eq('id', newOrder.id);
+      throw itemsErr;
+    }
+
+    return newOrder;
+  } catch (error) {
+    await releaseAll();
+    throw error;
+  }
+}
+
 // --- DASHBOARD ---
 export async function getDashboardKPIs(shopId?: string, fromDate?: Date, toDate?: Date) {
   const sid = shopId || await getCurrentShopId();

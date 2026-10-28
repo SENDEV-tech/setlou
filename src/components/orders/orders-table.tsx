@@ -139,7 +139,11 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                 </TableCell>
                 <TableCell>{new Date(order.created_at).toLocaleString("fr-SN")}</TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
-                <TableCell>{order.creator?.full_name}</TableCell>
+                <TableCell>
+                  {order.creator?.full_name || (order.snapshot?.source === 'boutique' ? (
+                    <Badge variant="outline">Lien boutique</Badge>
+                  ) : null)}
+                </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatXOF(order.total_xof)}
                 </TableCell>

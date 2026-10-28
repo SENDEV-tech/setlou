@@ -18,6 +18,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Setlou",
   description: "Vendez sur WhatsApp. Encaissez en toute sécurité.",
+  appleWebApp: { capable: true, title: "Setlou", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
 export default function RootLayout({

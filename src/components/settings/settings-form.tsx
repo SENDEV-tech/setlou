@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateShopSettingsAction } from "@/app/actions/settings";
 import { toast } from "sonner";
-import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save, CreditCard, CheckCircle2 } from "lucide-react";
+import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save, CreditCard, CheckCircle2, Trash2 } from "lucide-react";
+import { SHOP_STYLES, SHOP_STYLE_LABELS, toShopStyle, type ShopStyle } from "@/lib/shop-style";
 
 interface SettingsFormProps {
   shop: any;
 }
 
-const compressImage = (file: File): Promise<string> => {
+const compressImage = (file: File, maxDim = 512, quality = 0.85): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -21,7 +22,6 @@ const compressImage = (file: File): Promise<string> => {
       const img = new Image();
       img.src = event.target?.result as string;
       img.onload = () => {
-        const maxDim = 512;
         let width = img.width;
         let height = img.height;
 
@@ -46,7 +46,7 @@ const compressImage = (file: File): Promise<string> => {
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
         resolve(dataUrl);
       };
       img.onerror = () => resolve(event.target?.result as string);
@@ -60,6 +60,28 @@ export function SettingsForm({ shop }: SettingsFormProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(shop.logo_path || null);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState(shop.brand_color || "#16a34a");
+  const [coverPreview, setCoverPreview] = useState<string | null>(shop.cover_path || null);
+  const [coverBase64, setCoverBase64] = useState<string | null>(null);
+  const [removeCover, setRemoveCover] = useState(false);
+  const [shopStyle, setShopStyle] = useState<ShopStyle>(toShopStyle(shop.shop_style));
+
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner un fichier image valide (JPG, PNG).");
+      return;
+    }
+    try {
+      const compressed = await compressImage(file, 1400, 0.78);
+      setCoverPreview(compressed);
+      setCoverBase64(compressed);
+      setRemoveCover(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de la lecture de l'image.");
+    }
+  };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,6 +110,12 @@ export function SettingsForm({ shop }: SettingsFormProps) {
       if (logoBase64) {
         formData.set("logo_base64", logoBase64);
       }
+      if (coverBase64) {
+        formData.set("cover_base64", coverBase64);
+      } else if (removeCover) {
+        formData.set("remove_cover", "1");
+      }
+      formData.set("shop_style", shopStyle);
       const result = await updateShopSettingsAction(formData);
       
       if (result?.success) {
@@ -125,7 +153,7 @@ export function SettingsForm({ shop }: SettingsFormProps) {
         </TabsList>
 
         <div className="bg-card border rounded-xl p-4 sm:p-6 shadow-sm">
-          <TabsContent value="general" className="mt-0 space-y-6">
+          <TabsContent value="general" keepMounted className="mt-0 space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Informations de la boutique</h3>
               
@@ -144,7 +172,7 @@ export function SettingsForm({ shop }: SettingsFormProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="customization" className="mt-0 space-y-6">
+          <TabsContent value="customization" keepMounted className="mt-0 space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Identité Visuelle</h3>
               
@@ -197,6 +225,81 @@ export function SettingsForm({ shop }: SettingsFormProps) {
                   </div>
                 </div>
 
+                <div className="space-y-4 pt-4 border-t">
+                  <div>
+                    <h4 className="text-sm font-medium">Ma page boutique</h4>
+                    <p className="text-xs text-muted-foreground">Ce que vos clients voient en ouvrant votre lien boutique.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Photo de couverture</label>
+                    <div className="relative aspect-[3/1] rounded-xl border-2 border-dashed overflow-hidden bg-muted/30 flex items-center justify-center">
+                      {coverPreview ? (
+                        <>
+                          <img src={coverPreview} alt="Couverture" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCoverPreview(null);
+                              setCoverBase64(null);
+                              setRemoveCover(true);
+                            }}
+                            className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center"
+                            aria-label="Retirer la photo"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <Input
+                      id="cover"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverChange}
+                      className="cursor-pointer text-xs sm:text-sm"
+                    />
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                      Une belle photo de vos articles ou de votre boutique, en largeur.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="shop_tagline" className="text-sm font-medium">Slogan</label>
+                    <Input
+                      id="shop_tagline"
+                      name="shop_tagline"
+                      maxLength={120}
+                      defaultValue={shop.shop_tagline || ""}
+                      placeholder="Ex : Les plus beaux boubous de Dakar, livrés chez vous"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Style de la page</label>
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                      {SHOP_STYLES.map((value) => {
+                        const selected = shopStyle === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setShopStyle(value)}
+                            className={`rounded-xl border-2 p-2 text-left transition-colors ${selected ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/40"}`}
+                            aria-pressed={selected}
+                          >
+                            <StylePreview style={value} color={brandColor} />
+                            <span className="mt-2 block text-xs sm:text-sm font-semibold">{SHOP_STYLE_LABELS[value].label}</span>
+                            <span className="block text-[10px] sm:text-xs text-muted-foreground leading-tight">{SHOP_STYLE_LABELS[value].hint}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Aperçu en direct */}
                 <div className="space-y-3 pt-4 border-t">
                   <label className="text-sm font-medium">Aperçu en direct (Lien de paiement)</label>
@@ -226,7 +329,7 @@ export function SettingsForm({ shop }: SettingsFormProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="messaging" className="mt-0 space-y-6">
+          <TabsContent value="messaging" keepMounted className="mt-0 space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Messages par défaut</h3>
               
@@ -399,5 +502,26 @@ export function SettingsForm({ shop }: SettingsFormProps) {
         </div>
       </Tabs>
     </form>
+  );
+}
+
+function StylePreview({ style, color }: { style: ShopStyle; color: string }) {
+  const banner = style === "elegant" ? "#1c1917" : color;
+  const page = style === "elegant" ? "#f6f3ee" : style === "colore" ? `${color}1f` : "#f7f7f5";
+  const card = style === "elegant" ? "rounded-[2px] border border-stone-300" : style === "colore" ? "rounded-md border-2" : "rounded-md shadow-sm";
+  return (
+    <div className="rounded-lg overflow-hidden border" style={{ backgroundColor: page }}>
+      <div className="h-8 relative" style={{ backgroundColor: banner }}>
+        {style === "elegant" && <div className="absolute bottom-0 inset-x-0 h-0.5" style={{ backgroundColor: color }} />}
+        {style === "colore" && (
+          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "6px 6px" }} />
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-1 p-1.5">
+        {[0, 1].map((i) => (
+          <div key={i} className={`h-7 bg-white ${card}`} style={style === "colore" ? { borderColor: `${color}55` } : undefined} />
+        ))}
+      </div>
+    </div>
   );
 }
