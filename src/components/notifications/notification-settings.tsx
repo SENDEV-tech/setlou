@@ -42,6 +42,7 @@ export function NotificationSettings() {
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const [denied, setDenied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<{ tone: "ok" | "warn" | "error"; text: string } | null>(null);
   const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => {
@@ -60,21 +61,22 @@ export function NotificationSettings() {
   async function enablePush() {
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!publicKey) {
-      toast.error("Les notifications push ne sont pas encore configurées sur le serveur.");
+      setStatus({ tone: "error", text: "Les notifications push ne sont pas encore configurées sur le serveur." });
       return;
     }
     setBusy(true);
+    setStatus(null);
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setDenied(permission === "denied");
-        toast.error("Autorisez les notifications pour Setlou dans votre navigateur.");
+        setStatus({ tone: "error", text: "Autorisez les notifications pour Setlou dans votre navigateur." });
         return;
       }
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
+        applicationServerKey: urlBase64ToUint8Array(publicKey.trim()),
       });
       const json = sub.toJSON();
       const result = await subscribePushAction({
@@ -83,14 +85,19 @@ export function NotificationSettings() {
       });
       if (!result.ok) {
         await sub.unsubscribe();
-        toast.error(result.error);
+        setStatus({ tone: "error", text: result.error });
         return;
       }
       setSubscription(sub);
-      toast.success("Notifications activées sur cet appareil.");
+      if (result.data.testSent) {
+        setStatus({ tone: "ok", text: "Notifications activées. Une notification de test vient d'être envoyée." });
+        toast.success("Notifications activées sur cet appareil.");
+      } else {
+        setStatus({ tone: "warn", text: "Appareil enregistré, mais la notification de test n'a pas pu partir. Vérifiez les clés VAPID du serveur." });
+      }
     } catch (err) {
       console.error("Push subscribe failed:", err);
-      toast.error("Impossible d'activer les notifications sur cet appareil.");
+      setStatus({ tone: "error", text: "Impossible d'activer les notifications sur cet appareil." });
     } finally {
       setBusy(false);
     }
@@ -103,6 +110,7 @@ export function NotificationSettings() {
       await unsubscribePushAction(subscription.endpoint);
       await subscription.unsubscribe();
       setSubscription(null);
+      setStatus(null);
       toast.success("Notifications désactivées sur cet appareil.");
     } finally {
       setBusy(false);
@@ -161,6 +169,11 @@ export function NotificationSettings() {
               {support === "ok" && denied && !pushOn && (
                 <p className="text-xs text-amber-600">
                   Les notifications sont bloquées pour Setlou. Autorisez-les dans les réglages du navigateur (icône à gauche de l&apos;adresse), puis réessayez.
+                </p>
+              )}
+              {status && (
+                <p className={`text-xs ${status.tone === "ok" ? "text-green-600" : status.tone === "warn" ? "text-amber-600" : "text-red-600"}`}>
+                  {status.text}
                 </p>
               )}
               {support === "ok" && (

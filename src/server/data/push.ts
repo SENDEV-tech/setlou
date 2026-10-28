@@ -10,17 +10,31 @@ export type PushSubscriptionInput = {
 let vapidReady: boolean | null = null;
 
 // Les clés VAPID se génèrent une fois avec `npx web-push generate-vapid-keys`.
+function vapidSubject() {
+  const raw = (process.env.VAPID_SUBJECT || '').trim().replace(/^mailto:\s*/i, 'mailto:');
+  if (!raw) return 'mailto:contact@setlou.com';
+  // web-push refuse une adresse e-mail seule : il faut « mailto: » devant.
+  if (!/^(mailto:|https?:)/i.test(raw)) return `mailto:${raw}`;
+  return raw;
+}
+
 function ensureVapid() {
   if (vapidReady !== null) return vapidReady;
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  // Un espace ou un retour à la ligne copié avec la clé la rend invalide.
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
   if (!publicKey || !privateKey) {
     console.warn('Push désactivé : NEXT_PUBLIC_VAPID_PUBLIC_KEY ou VAPID_PRIVATE_KEY manquant.');
     vapidReady = false;
     return vapidReady;
   }
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:contact@setlou.com', publicKey, privateKey);
-  vapidReady = true;
+  try {
+    webpush.setVapidDetails(vapidSubject(), publicKey, privateKey);
+    vapidReady = true;
+  } catch (error) {
+    console.error('Push désactivé : clés VAPID invalides.', error);
+    vapidReady = false;
+  }
   return vapidReady;
 }
 
