@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  BellRing,
+  Boxes,
   BadgeCheck,
   ChevronDown,
-  CircleDollarSign,
   Link2,
   Menu,
   MessageCircle,
@@ -12,7 +13,6 @@ import {
   SearchX,
   Smartphone,
   Store,
-  UserCheck,
   Users,
   Wallet,
 } from "lucide-react";
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const title = "Setlou — Vos ventes WhatsApp, enfin comptées";
 const description =
-  "Envoyez un lien de paiement pour chaque commande WhatsApp. Setlou compte vos ventes, suit chaque assistant et calcule votre chiffre d'affaires. 0 % de commission.";
+  "Envoyez un lien de paiement pour chaque commande WhatsApp. Setlou compte vos ventes, gère votre stock et vous offre une boutique en ligne. 0 % de commission.";
 
 export const metadata: Metadata = {
   title,
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 const navLinks = [
   { href: "#comment", label: "Comment ça marche" },
-  { href: "#equipe", label: "Assistants" },
+  { href: "#nouveautes", label: "Nouveautés" },
   { href: "#tarifs", label: "Tarifs" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -127,7 +127,7 @@ const faqs = [
     a: "Non. Vous continuez à vendre sur votre WhatsApp habituel. Setlou vous donne simplement un lien à envoyer et un tableau de bord pour suivre vos ventes.",
   },
   {
-    q: "Que se passe-t-il après l'essai de 14 jours ?",
+    q: "Que se passe-t-il après l'essai de 20 jours ?",
     a: "Votre boutique est mise en pause jusqu'à ce que vous choisissiez un plan. Vos produits et vos commandes sont conservés.",
   },
 ];
@@ -246,35 +246,63 @@ function HeroPreview() {
   );
 }
 
-function TeamPreview() {
-  const rows = [
-    { name: "Awa Diop", phone: "77 •• •• 12", sales: 14, amount: "214 000 F" },
-    { name: "Ibrahima Sarr", phone: "78 •• •• 45", sales: 11, amount: "168 500 F" },
-    { name: "Mariama Ba", phone: "76 •• •• 08", sales: 4, amount: "57 000 F" },
+const newFeatures = [
+  {
+    icon: Store,
+    title: "Votre boutique en ligne",
+    text: "Un lien à mettre dans votre statut ou votre bio. Vos clients choisissent leurs articles, remplissent leur panier et commandent seuls.",
+  },
+  {
+    icon: Boxes,
+    title: "Un stock toujours à jour",
+    text: "Le stock baisse à chaque commande. Setlou vous prévient quand un produit arrive à la fin et l'affiche épuisé dans votre boutique.",
+  },
+  {
+    icon: BellRing,
+    title: "Les commandes en temps réel",
+    text: "Une notification arrive sur votre téléphone dès qu'un client commande. Vous ne ratez plus aucune vente.",
+  },
+];
+
+/** Aperçu illustratif : une notification de commande et l'état du stock. */
+function FeaturesPreview() {
+  const stock = [
+    { name: "Robe wax", left: "12 en stock", tone: "text-emerald-600 dark:text-emerald-400" },
+    { name: "Sac en cuir", left: "Plus que 2", tone: "text-orange-500" },
+    { name: "Sandales tressées", left: "Épuisé", tone: "text-red-500" },
   ];
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card shadow-lg" aria-hidden="true">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <p className="text-sm font-semibold">Ventes par assistant</p>
-        <p className="text-xs text-muted-foreground">Cette semaine</p>
+    <div className="space-y-4" aria-hidden="true">
+      <div className="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-lg">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <BellRing className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold">Nouvelle commande CMD-0143</span>
+            <span className="text-xs text-muted-foreground">maintenant</span>
+          </span>
+          <span className="mt-0.5 block text-sm text-muted-foreground">Fatou N. · 2x Robe wax · 22 000 F</span>
+        </span>
       </div>
-      <ul className="divide-y">
-        {rows.map((r) => (
-          <li key={r.name} className="flex items-center gap-3 px-4 py-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold">
-              {r.name.charAt(0)}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">{r.name}</span>
-              <span className="block text-xs text-muted-foreground">WhatsApp {r.phone}</span>
-            </span>
-            <span className="text-right">
-              <span className="block text-sm font-semibold tabular-nums">{r.amount}</span>
-              <span className="block text-xs text-muted-foreground">{r.sales} ventes</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-lg">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <p className="text-sm font-semibold">Stock</p>
+          <p className="text-xs text-muted-foreground">Mis à jour automatiquement</p>
+        </div>
+        <ul className="divide-y">
+          {stock.map((p) => (
+            <li key={p.name} className="flex items-center justify-between px-4 py-3 text-sm">
+              <span className="font-medium">{p.name}</span>
+              <span className={cn("font-semibold", p.tone)}>{p.left}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex items-center gap-3 rounded-2xl border bg-card px-4 py-3 shadow-lg">
+        <Link2 className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <span className="truncate text-sm font-medium">setlou.com/boutique/awa-style</span>
+      </div>
     </div>
   );
 }
@@ -296,12 +324,12 @@ export default function LandingPage() {
               Vos ventes WhatsApp, enfin comptées.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Envoyez un lien de paiement pour chaque commande. Setlou enregistre la vente, note quel assistant l&apos;a
-              conclue et calcule votre chiffre d&apos;affaires de la semaine, du mois et de l&apos;année.
+              Envoyez un lien de paiement pour chaque commande. Setlou enregistre la vente, met votre stock à jour
+              et calcule votre chiffre d&apos;affaires de la semaine, du mois et de l&apos;année.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-7 text-base" })}>
-                Essayer 14 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+                Essayer 20 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
               <Link
                 href="#comment"
@@ -363,31 +391,30 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ASSISTANTS */}
-        <section id="equipe" className="scroll-mt-16 bg-slate-950 py-20 text-white md:py-28">
+        {/* NOUVEAUTÉS */}
+        <section id="nouveautes" className="scroll-mt-16 bg-slate-950 py-20 text-white md:py-28">
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 lg:grid-cols-2">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-white/50">Vous vendez avec une équipe ?</p>
+              <p className="text-sm font-semibold uppercase tracking-widest text-white/50">Nouveautés</p>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Faites vendre vos assistants. Gardez le contrôle.
+                Plus qu&apos;un lien de paiement : toute votre boutique.
               </h2>
-              <ul className="mt-8 space-y-5">
-                {[
-                  { icon: UserCheck, text: "Chaque assistant a son propre accès et son numéro WhatsApp. Vous n'avez plus à prêter votre téléphone." },
-                  { icon: CircleDollarSign, text: "Chaque vente est attribuée à l'assistant qui l'a conclue. Vous voyez qui vend, et combien." },
-                  { icon: Wallet, text: "Vos assistants voient les commandes et les produits, jamais vos revenus ni vos paramètres." },
-                ].map((item) => (
-                  <li key={item.text} className="flex gap-4">
+              <ul className="mt-8 space-y-6">
+                {newFeatures.map((item) => (
+                  <li key={item.title} className="flex gap-4">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
                       <item.icon className="h-5 w-5" />
                     </span>
-                    <p className="pt-2 leading-relaxed text-white/75">{item.text}</p>
+                    <div>
+                      <h3 className="font-bold">{item.title}</h3>
+                      <p className="mt-1 leading-relaxed text-white/75">{item.text}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="text-foreground">
-              <TeamPreview />
+              <FeaturesPreview />
             </div>
           </div>
         </section>
@@ -409,7 +436,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
               <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Des tarifs simples</h2>
-              <p className="mt-3 text-muted-foreground">14 jours d&apos;essai gratuit sur tous les plans.</p>
+              <p className="mt-3 text-muted-foreground">20 jours d&apos;essai gratuit sur tous les plans.</p>
             </div>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {plans.map((plan) => (
@@ -487,7 +514,7 @@ export default function LandingPage() {
                 className: "mt-8 h-12 rounded-full px-8 text-base",
               })}
             >
-              Essayer 14 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+              Essayer 20 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
         </section>
