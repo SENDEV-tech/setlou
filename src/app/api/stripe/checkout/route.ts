@@ -57,9 +57,9 @@ async function handleCheckout(plan: string, origin: string) {
       sessionParams.customer_email = shop.email; // assuming shop has an email or we can use metadata
     }
 
-    // Add 14 days trial if requested
+    // Add 20 days trial if requested
     sessionParams.subscription_data = {
-      trial_period_days: 14,
+      trial_period_days: 20,
       metadata: {
         shopId: shopId,
       }
