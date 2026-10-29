@@ -2,7 +2,8 @@
 -- Un paiement Wave = 30 jours d'accès, renouvelable à la main.
 -- A exécuter une fois dans Supabase > SQL Editor.
 
--- 1. Fin de la période payée et moyen de paiement de l'abonnement.
+-- 1. Fin de la période payée (essai ou Wave) et origine de l'abonnement :
+--    'trial' (essai gratuit de 20 jours à l'inscription), 'wave' ou 'stripe'.
 alter table public.shops
   add column if not exists subscription_provider text,
   add column if not exists paid_until timestamptz;

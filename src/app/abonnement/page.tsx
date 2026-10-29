@@ -24,6 +24,8 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
 
   const shopId = await getCurrentShopId();
   const shop = await getShop(shopId);
+  // L'essai est donné à l'inscription ; seules les anciennes boutiques sans essai le démarrent par carte.
+  const stripeLabel = shop.subscription_provider || shop.stripe_subscription_id ? "Payer par carte" : "Commencer l'essai gratuit";
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -47,10 +49,18 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold tracking-tight">Choisissez votre plan</h1>
           <p className="text-muted-foreground text-lg">
-            Profitez de 20 jours d'essai gratuit. L'abonnement est requis pour accéder à l'application.
+            {shop.subscription_provider === "trial"
+              ? "Votre essai gratuit de 20 jours est inclus dès l'inscription. Choisissez un plan pour continuer après."
+              : "L'abonnement est requis pour accéder à l'application."}
           </p>
+          {shop.subscription_provider === "trial" && shop.paid_until && (
+            <p className="text-sm font-medium">
+              {new Date(shop.paid_until).getTime() > Date.now() ? "Essai gratuit jusqu'au " : "Essai gratuit terminé le "}
+              {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
+            </p>
+          )}
           <p className="text-muted-foreground text-sm">
-            Avec Wave, vous payez 30 jours d'accès, sans essai ni prélèvement automatique, et vous renouvelez quand vous voulez.
+            Avec Wave, chaque paiement ajoute 30 jours d'accès, sans prélèvement automatique. Payé pendant l'essai, le mois commence à la fin de l'essai.
           </p>
           {shop.subscription_provider === "wave" && shop.paid_until && (
             <p className="text-sm font-medium">
@@ -94,7 +104,7 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
             <form action="/api/stripe/checkout" method="POST">
               <input type="hidden" name="plan" value="starter" />
               <Button type="submit" variant="outline" className="w-full" size="lg">
-                Commencer l'essai gratuit
+                {stripeLabel}
               </Button>
             </form>
             <WaveForm plan="starter" />
@@ -130,7 +140,7 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
             <form action="/api/stripe/checkout" method="POST">
               <input type="hidden" name="plan" value="pro" />
               <Button type="submit" className="w-full shadow-md" size="lg">
-                Commencer l'essai gratuit
+                {stripeLabel}
               </Button>
             </form>
             <WaveForm plan="pro" />
@@ -160,7 +170,7 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
             <form action="/api/stripe/checkout" method="POST">
               <input type="hidden" name="plan" value="entreprise" />
               <Button type="submit" variant="outline" className="w-full" size="lg">
-                Commencer l'essai gratuit
+                {stripeLabel}
               </Button>
             </form>
             <WaveForm plan="entreprise" />

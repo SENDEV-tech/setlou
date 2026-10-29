@@ -10,6 +10,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
 const WAVE_API = 'https://api.wave.com/v1';
 const SIGNATURE_MAX_AGE_SECONDS = 5 * 60;
 export const WAVE_PERIOD_DAYS = 30;
+export const TRIAL_DAYS = 20;
 
 export const WAVE_PLANS = {
   starter: { priceXof: 4900, monthlyLimit: 100, maxAssistants: 1 },
@@ -175,11 +176,12 @@ export async function applySubscriptionPayment(session: WaveCheckoutSession): Pr
   return true;
 }
 
-// Abonnement Wave arrivé à échéance : la boutique repasse en impayé.
-export async function expireWaveSubscription(shopId: string) {
+// Essai gratuit ou abonnement Wave arrivé à échéance : la boutique repasse en impayé.
+// (Les abonnements Stripe sont gérés par le webhook Stripe.)
+export async function expirePaidPeriod(shopId: string) {
   await createAdminClient()
     .from('shops')
     .update({ subscription_status: 'past_due' })
     .eq('id', shopId)
-    .eq('subscription_provider', 'wave');
+    .in('subscription_provider', ['wave', 'trial']);
 }
