@@ -16,11 +16,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Les icônes et l'image d'aperçu (WhatsApp, réseaux sociaux) viennent des fichiers
+// favicon.ico, icon.png, apple-icon.png, opengraph-image.png et twitter-image.png de src/app.
 export const metadata: Metadata = {
+  metadataBase: new URL("https://setlou.com"),
   title: "Setlou",
   description: "Vendez sur WhatsApp. Encaissez en toute sécurité.",
+  applicationName: "Setlou",
   appleWebApp: { capable: true, title: "Setlou", statusBarStyle: "default" },
-  icons: { apple: "/icons/apple-touch-icon.png" },
+  openGraph: {
+    type: "website",
+    siteName: "Setlou",
+    locale: "fr_FR",
+    title: "Setlou",
+    description: "Vendez sur WhatsApp. Encaissez en toute sécurité.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({
