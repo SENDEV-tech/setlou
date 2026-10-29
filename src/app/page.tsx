@@ -19,10 +19,15 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const title = "Setlou — Vos ventes WhatsApp, enfin comptées";
+const description =
+  "Envoyez un lien de paiement pour chaque commande WhatsApp. Setlou compte vos ventes, suit chaque assistant et calcule votre chiffre d'affaires. 0 % de commission.";
+
 export const metadata: Metadata = {
-  title: "Setlou — Vos ventes WhatsApp, enfin comptées",
-  description:
-    "Envoyez un lien de paiement pour chaque commande WhatsApp. Setlou compte vos ventes, suit chaque assistant et calcule votre chiffre d'affaires. 0 % de commission.",
+  title,
+  description,
+  openGraph: { type: "website", siteName: "Setlou", locale: "fr_FR", url: "/", title, description },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 const navLinks = [
