@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Check, LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions/auth";
+import { isWaveConfigured } from "@/server/data/wave";
 
 function WaveForm({ plan }: { plan: string }) {
+  if (!isWaveConfigured()) return null;
   return (
     <form action="/api/wave/checkout" method="POST" className="mt-2">
       <input type="hidden" name="plan" value={plan} />
@@ -59,9 +61,9 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
               {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
             </p>
           )}
-          <p className="text-muted-foreground text-sm">
+          {isWaveConfigured() && <p className="text-muted-foreground text-sm">
             Avec Wave, chaque paiement ajoute 30 jours d'accès, sans prélèvement automatique. Payé pendant l'essai, le mois commence à la fin de l'essai.
-          </p>
+          </p>}
           {shop.subscription_provider === "wave" && shop.paid_until && (
             <p className="text-sm font-medium">
               Abonnement Wave payé jusqu'au {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
@@ -69,7 +71,7 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
           )}
           {stripe === "erreur" && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3 max-w-md mx-auto">
-              Le paiement par carte est indisponible pour le moment. Vous pouvez payer avec Wave.
+              Le paiement par carte est indisponible pour le moment. Réessayez plus tard ou contactez le support.
             </p>
           )}
           {wave === "erreur" && (

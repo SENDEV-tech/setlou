@@ -20,6 +20,11 @@ export const WAVE_PLANS = {
 
 export type WavePlan = keyof typeof WAVE_PLANS;
 
+// Le bouton Wave n'apparaît que lorsque le compte Wave Business est configuré.
+export function isWaveConfigured(): boolean {
+  return !!process.env.WAVE_API_KEY;
+}
+
 export function isWavePlan(value: unknown): value is WavePlan {
   return typeof value === 'string' && value in WAVE_PLANS;
 }
