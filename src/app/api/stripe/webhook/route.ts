@@ -56,6 +56,7 @@ export async function POST(req: Request) {
               stripe_customer_id: customerId,
               stripe_subscription_id: subscriptionId,
               subscription_status: "active",
+              subscription_provider: "stripe",
               subscription_plan: plan,
               monthly_orders_limit: monthlyLimit,
               max_assistants: maxAssistants,

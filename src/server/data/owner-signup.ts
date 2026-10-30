@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/utils/supabase/admin";
+import { TRIAL_DAYS } from "@/server/data/wave";
 
 /**
  * Crée la boutique et le profil propriétaire d'un nouveau compte.
@@ -24,6 +25,10 @@ export async function createOwnerShop(input: {
       slug: input.shopName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       whatsapp_number: input.whatsapp,
       subscription_plan: 'starter',
+      // Essai gratuit sans moyen de paiement ; ensuite Wave ou carte.
+      subscription_status: 'trialing',
+      subscription_provider: 'trial',
+      paid_until: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
       monthly_orders_limit: 100,
       max_assistants: 1,
     })
