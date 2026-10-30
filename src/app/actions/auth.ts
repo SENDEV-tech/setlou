@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createOwnerShop } from "@/server/data/owner-signup";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -80,45 +80,17 @@ export async function signupAction(formData: FormData) {
     return { error: "Erreur lors de la création du compte." };
   }
 
-  // 2. Create Shop
-  // Clé service_role : la RLS interdit ces insertions depuis le navigateur, et
-  // aucune session n'existe encore si l'email doit être confirmé.
-  const adminClient = createAdminClient();
-  const { data: shopData, error: shopError } = await adminClient
-    .from("shops")
-    .insert({
-      owner_id: authData.user.id,
-      name: shopName,
-      slug: shopName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      whatsapp_number: whatsapp,
-      subscription_plan: 'starter',
-      monthly_orders_limit: 100,
-      max_assistants: 1,
-    })
-    .select()
-    .single();
+  // 2. Create Shop + Owner Profile
+  const created = await createOwnerShop({
+    userId: authData.user.id,
+    shopName,
+    fullName,
+    whatsapp,
+    username: email.split("@")[0],
+  });
 
-  if (shopError) {
-    return { error: "Erreur lors de la création de la boutique." };
-  }
-
-  // 3. Create Owner Profile
-  const { error: profileError } = await adminClient
-    .from("profiles")
-    .insert({
-      id: authData.user.id,
-      shop_id: shopData.id,
-      role: "owner",
-      full_name: fullName,
-      username: email.split("@")[0],
-      whatsapp_number: whatsapp,
-      is_active: true,
-      must_change_password: false,
-    });
-
-  if (profileError) {
-    await adminClient.from("shops").delete().eq("id", shopData.id);
-    return { error: "Erreur lors de la création du profil." };
+  if (!created.ok) {
+    return { error: created.error };
   }
 
   return { success: true, requireEmailConfirmation: !authData.session };
