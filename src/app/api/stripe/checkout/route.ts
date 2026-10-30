@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getCurrentShopId, getShop } from "@/server/data/supabase-store";
+import { TRIAL_DAYS } from "@/server/data/wave";
 
 export const dynamic = "force-dynamic";
 
@@ -57,23 +58,27 @@ async function handleCheckout(plan: string, origin: string) {
       sessionParams.customer_email = shop.email; // assuming shop has an email or we can use metadata
     }
 
-    // Add 14 days trial if requested
+    // L'essai gratuit est donné à l'inscription : Stripe ne prolonge que ce qu'il en reste
+    // (Stripe exige au moins 48 h), et les boutiques sans essai Setlou gardent les 20 jours.
     sessionParams.subscription_data = {
-      trial_period_days: 14,
       metadata: {
         shopId: shopId,
       }
     };
+    const paidUntil = shop.paid_until ? new Date(shop.paid_until).getTime() : 0;
+    if (!shop.subscription_provider && !shop.stripe_subscription_id) {
+      sessionParams.subscription_data.trial_period_days = TRIAL_DAYS;
+    } else if (paidUntil > Date.now() + 48 * 60 * 60 * 1000) {
+      sessionParams.subscription_data.trial_end = Math.floor(paidUntil / 1000);
+    }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
     return NextResponse.redirect(session.url as string, 303);
   } catch (error: any) {
-    console.error("Stripe Checkout Error:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la création de la session de paiement." },
-      { status: 500 }
-    );
+    console.error("Stripe Checkout Error:", error?.type, error?.code, error?.message);
+    // Retour sur la page des plans avec un message, au lieu d'une page JSON brute.
+    return NextResponse.redirect(`${origin}/abonnement?stripe=erreur`, 303);
   }
 }
 

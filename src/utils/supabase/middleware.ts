@@ -41,6 +41,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname === "/sw.js" ||
     request.nextUrl.pathname === "/manifest.webmanifest" ||
     request.nextUrl.pathname.startsWith("/api/stripe") ||
+    request.nextUrl.pathname.startsWith("/api/wave") ||
     request.nextUrl.pathname.startsWith("/api/track");
 
   if (!user && !isPublicPath) {

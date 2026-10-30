@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { logoutAction } from "@/app/actions/auth";
 import { LogOut } from "lucide-react";
 import { OrderNotifier } from "@/components/notifications/order-notifier";
+import { expirePaidPeriod } from "@/server/data/wave";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -15,6 +16,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const headersList = await headers();
   const pathname = headersList.get("x-invoke-path") || "";
+
+  // Essai gratuit (20 jours) et abonnement Wave (30 jours par paiement) ont une date
+  // de fin : à échéance, la boutique repasse en impayé.
+  if (
+    (shop.subscription_provider === "wave" || shop.subscription_provider === "trial") &&
+    (shop.subscription_status === "active" || shop.subscription_status === "trialing") &&
+    shop.paid_until &&
+    new Date(shop.paid_until).getTime() < Date.now()
+  ) {
+    await expirePaidPeriod(shop.id);
+    shop.subscription_status = "past_due";
+  }
 
   // Subscription Enforcement for owners
   if (profile.role === "owner") {
