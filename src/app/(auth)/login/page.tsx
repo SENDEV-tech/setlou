@@ -8,10 +8,13 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Store } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { PhoneOtpForm } from "@/components/auth/phone-otp-form";
+import { AuthMethodSwitch, type AuthMethod } from "@/components/auth/auth-method-switch";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [method, setMethod] = useState<AuthMethod>("phone");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -55,6 +58,11 @@ export default function LoginPage() {
       </div>
 
       <div className="grid gap-6">
+        <AuthMethodSwitch value={method} onChange={(m) => { setMethod(m); setError(null); }} emailLabel="Email ou identifiant" />
+
+        {method === "phone" ? (
+          <PhoneOtpForm mode="login" />
+        ) : (
         <form action={handleSubmit}>
           <div className="grid gap-4">
             <div className="grid gap-2">
@@ -100,6 +108,7 @@ export default function LoginPage() {
             </Button>
           </div>
         </form>
+        )}
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

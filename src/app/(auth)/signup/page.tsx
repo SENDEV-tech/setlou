@@ -8,12 +8,20 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Store } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { PhoneOtpForm } from "@/components/auth/phone-otp-form";
+import { AuthMethodSwitch, type AuthMethod } from "@/components/auth/auth-method-switch";
+
+function nextAfterSignup(): string {
+  const plan = new URLSearchParams(window.location.search).get("plan");
+  return plan ? `/api/stripe/checkout?plan=${plan}` : "/tableau-de-bord";
+}
 
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [requireEmail, setRequireEmail] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [method, setMethod] = useState<AuthMethod>("phone");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -26,9 +34,7 @@ export default function SignupPage() {
       if (result.requireEmailConfirmation) {
         setRequireEmail(true);
       } else {
-        const urlParams = new URLSearchParams(window.location.search);
-        const plan = urlParams.get("plan");
-        window.location.href = plan ? `/api/stripe/checkout?plan=${plan}` : "/tableau-de-bord";
+        window.location.href = nextAfterSignup();
       }
     }
     setLoading(false);
@@ -38,9 +44,7 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const urlParams = new URLSearchParams(window.location.search);
-    const plan = urlParams.get("plan");
-    const nextUrl = plan ? `/api/stripe/checkout?plan=${plan}` : "/tableau-de-bord";
+    const nextUrl = nextAfterSignup();
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -93,6 +97,11 @@ export default function SignupPage() {
         </div>
       ) : (
         <div className="grid gap-6">
+        <AuthMethodSwitch value={method} onChange={(m) => { setMethod(m); setError(null); }} />
+
+        {method === "phone" ? (
+          <PhoneOtpForm mode="signup" redirectTo={nextAfterSignup} />
+        ) : (
         <form action={handleSubmit}>
           <div className="grid gap-4">
             
@@ -164,6 +173,7 @@ export default function SignupPage() {
             </Button>
           </div>
         </form>
+        )}
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
