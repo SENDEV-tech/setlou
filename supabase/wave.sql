@@ -29,3 +29,12 @@ revoke insert, update, delete, truncate on public.subscription_payments from ano
 drop policy if exists "subscription_payments_select_member" on public.subscription_payments;
 create policy "subscription_payments_select_member" on public.subscription_payments
   for select to authenticated using (shop_id = public.current_shop_id());
+
+-- 3. Boutiques inscrites sans abonnement (le paiement par carte échouait) :
+--    on leur ouvre l'essai gratuit de 20 jours à partir d'aujourd'hui.
+update public.shops
+   set subscription_status = 'trialing',
+       subscription_provider = 'trial',
+       paid_until = now() + interval '20 days'
+ where subscription_status is null
+   and stripe_subscription_id is null;

@@ -76,11 +76,9 @@ async function handleCheckout(plan: string, origin: string) {
 
     return NextResponse.redirect(session.url as string, 303);
   } catch (error: any) {
-    console.error("Stripe Checkout Error:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la création de la session de paiement." },
-      { status: 500 }
-    );
+    console.error("Stripe Checkout Error:", error?.type, error?.code, error?.message);
+    // Retour sur la page des plans avec un message, au lieu d'une page JSON brute.
+    return NextResponse.redirect(`${origin}/abonnement?stripe=erreur`, 303);
   }
 }
 

@@ -15,8 +15,8 @@ function WaveForm({ plan }: { plan: string }) {
   );
 }
 
-export default async function AbonnementPage(props: { searchParams: Promise<{ wave?: string }> }) {
-  const { wave } = await props.searchParams;
+export default async function AbonnementPage(props: { searchParams: Promise<{ wave?: string; stripe?: string }> }) {
+  const { wave, stripe } = await props.searchParams;
   const profile = await getCurrentProfile();
   if (profile.role !== "owner") {
     redirect("/commandes");
@@ -65,6 +65,11 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
           {shop.subscription_provider === "wave" && shop.paid_until && (
             <p className="text-sm font-medium">
               Abonnement Wave payé jusqu'au {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
+            </p>
+          )}
+          {stripe === "erreur" && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3 max-w-md mx-auto">
+              Le paiement par carte est indisponible pour le moment. Vous pouvez payer avec Wave.
             </p>
           )}
           {wave === "erreur" && (
