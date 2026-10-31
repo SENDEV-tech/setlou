@@ -25,14 +25,14 @@ export async function subscribePushAction(input: PushSubscriptionPayload) {
     const profile = await getCurrentProfile();
     const userAgent = (await headers()).get("user-agent");
     await savePushSubscription(profile.id, profile.shop_id, parsed.data, userAgent?.slice(0, 300) ?? null);
-    // Un échec du test ne doit pas annuler l'abonnement : on le signale seulement.
-    let testSent = 0;
+    // Le résultat du test dit au navigateur si l'appareil peut vraiment recevoir.
+    let test: { sent: number; problem: string | null } = { sent: 0, problem: "Erreur lors de l'envoi du test." };
     try {
-      testSent = await sendTestPush(profile.id, profile.shop_id);
+      test = await sendTestPush(profile.id, profile.shop_id);
     } catch (error) {
       console.error("Error sending test push:", error);
     }
-    return { ok: true as const, data: { testSent: testSent > 0 } };
+    return { ok: true as const, data: { testSent: test.sent > 0, problem: test.problem } };
   } catch (error) {
     console.error("Error saving push subscription:", error);
     return { ok: false as const, error: "Impossible d'activer les notifications. Réessayez." };
