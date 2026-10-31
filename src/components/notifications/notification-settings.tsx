@@ -26,6 +26,10 @@ function urlBase64ToUint8Array(base64String: string) {
   return output;
 }
 
+function sameKey(a: Uint8Array, b: Uint8Array) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
 function detectSupport(): PushSupport {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone =
@@ -74,9 +78,16 @@ export function NotificationSettings() {
         return;
       }
       const reg = await navigator.serviceWorker.ready;
+      const applicationServerKey = urlBase64ToUint8Array(publicKey.trim());
+      // Un abonnement fait avec une ancienne clé ne marchera plus : on le remplace.
+      const existing = await reg.pushManager.getSubscription();
+      const existingKey = existing?.options.applicationServerKey;
+      if (existing && (!existingKey || !sameKey(new Uint8Array(existingKey), applicationServerKey))) {
+        await existing.unsubscribe();
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey.trim()),
+        applicationServerKey,
       });
       const json = sub.toJSON();
       const result = await subscribePushAction({
@@ -88,12 +99,15 @@ export function NotificationSettings() {
         setStatus({ tone: "error", text: result.error });
         return;
       }
-      setSubscription(sub);
       if (result.data.testSent) {
+        setSubscription(sub);
         setStatus({ tone: "ok", text: "Notifications activées. Une notification de test vient d'être envoyée." });
         toast.success("Notifications activées sur cet appareil.");
       } else {
-        setStatus({ tone: "warn", text: "Appareil enregistré, mais la notification de test n'a pas pu partir. Vérifiez les clés VAPID du serveur." });
+        // L'appareil ne peut pas recevoir : on ne l'affiche pas comme activé.
+        await sub.unsubscribe();
+        setSubscription(null);
+        setStatus({ tone: "error", text: `La notification de test n'a pas pu partir. ${result.data.problem ?? ""}`.trim() });
       }
     } catch (err) {
       console.error("Push subscribe failed:", err);
