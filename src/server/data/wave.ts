@@ -20,6 +20,25 @@ export const WAVE_PLANS = {
 
 export type WavePlan = keyof typeof WAVE_PLANS;
 
+// Offre Teranga : boutiques inscrites avant le 16 novembre 2026 (heure de Dakar, UTC+0)
+// -> premier mois payé avec Wave à moitié prix.
+export const TERANGA_OFFER_END = Date.UTC(2026, 10, 16);
+
+export function terangaPrice(plan: WavePlan): number {
+  return Math.round(WAVE_PLANS[plan].priceXof / 2);
+}
+
+// Éligible si la boutique a été créée avant la fin de l'offre et n'a encore jamais payé d'abonnement.
+export async function isTerangaEligible(shopId: string): Promise<boolean> {
+  const adminClient = createAdminClient();
+  const [{ data: shop }, { count, error }] = await Promise.all([
+    adminClient.from('shops').select('created_at').eq('id', shopId).single(),
+    adminClient.from('subscription_payments').select('id', { count: 'exact', head: true }).eq('shop_id', shopId),
+  ]);
+  if (!shop?.created_at || error) return false;
+  return new Date(shop.created_at).getTime() < TERANGA_OFFER_END && (count ?? 0) === 0;
+}
+
 // Le bouton Wave n'apparaît que lorsque le compte Wave Business est configuré.
 export function isWaveConfigured(): boolean {
   return !!process.env.WAVE_API_KEY;
@@ -73,21 +92,23 @@ async function waveFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-// client_reference = "<shopId>:<plan>:<nonce>" ; le nonce permet de retrouver
+// client_reference = "<shopId>:<plan>:<nonce>[:teranga]" ; le nonce permet de retrouver
 // la session au retour du client (Wave n'ajoute pas son id à l'URL de succès).
-function parseReference(ref: string | null): { shopId: string; plan: WavePlan } | null {
-  const [shopId, plan] = (ref ?? '').split(':');
+// Le suffixe « teranga » marque un premier mois à moitié prix (la référence est créée côté serveur).
+function parseReference(ref: string | null): { shopId: string; plan: WavePlan; teranga: boolean } | null {
+  const [shopId, plan, , offer] = (ref ?? '').split(':');
   if (!shopId || !isWavePlan(plan)) return null;
-  return { shopId, plan };
+  return { shopId, plan, teranga: offer === 'teranga' };
 }
 
 export async function createSubscriptionCheckout(shopId: string, plan: WavePlan): Promise<string> {
   const origin = await getAppOrigin();
-  const reference = `${shopId}:${plan}:${randomBytes(8).toString('hex')}`;
+  const teranga = await isTerangaEligible(shopId);
+  const reference = `${shopId}:${plan}:${randomBytes(8).toString('hex')}${teranga ? ':teranga' : ''}`;
   const session = await waveFetch<WaveCheckoutSession>('/checkout/sessions', {
     method: 'POST',
     body: JSON.stringify({
-      amount: String(WAVE_PLANS[plan].priceXof),
+      amount: String(teranga ? terangaPrice(plan) : WAVE_PLANS[plan].priceXof),
       currency: 'XOF',
       client_reference: reference,
       success_url: `${origin}/api/wave/success?ref=${encodeURIComponent(reference)}`,
@@ -133,7 +154,8 @@ export async function applySubscriptionPayment(session: WaveCheckoutSession): Pr
   if (!ref) return false;
 
   const plan = WAVE_PLANS[ref.plan];
-  if (session.currency !== 'XOF' || Number(session.amount) !== plan.priceXof) {
+  const expectedXof = ref.teranga ? terangaPrice(ref.plan) : plan.priceXof;
+  if (session.currency !== 'XOF' || Number(session.amount) !== expectedXof) {
     console.error('Wave abonnement : montant inattendu', session.id, session.amount, ref.plan);
     return false;
   }
@@ -146,7 +168,7 @@ export async function applySubscriptionPayment(session: WaveCheckoutSession): Pr
         id: session.id,
         shop_id: ref.shopId,
         plan: ref.plan,
-        amount_xof: plan.priceXof,
+        amount_xof: expectedXof,
         provider: 'wave',
         transaction_id: session.transaction_id,
       },

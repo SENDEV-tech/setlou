@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Check, LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions/auth";
-import { isWaveConfigured } from "@/server/data/wave";
+import { isTerangaEligible, isWaveConfigured } from "@/server/data/wave";
 
 function WaveForm({ plan }: { plan: string }) {
   if (!isWaveConfigured()) return null;
@@ -27,6 +27,7 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
   const shopId = await getCurrentShopId();
   const shop = await getShop(shopId);
   // L'essai est donné à l'inscription ; seules les anciennes boutiques sans essai le démarrent par carte.
+  const teranga = isWaveConfigured() && (await isTerangaEligible(shopId));
   const stripeLabel = shop.subscription_provider || shop.stripe_subscription_id ? "Payer par carte" : "Commencer l'essai gratuit";
 
   return (
@@ -64,6 +65,11 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
           {isWaveConfigured() && <p className="text-muted-foreground text-sm">
             Avec Wave, chaque paiement ajoute 30 jours d'accès, sans prélèvement automatique. Payé pendant l'essai, le mois commence à la fin de l'essai.
           </p>}
+          {teranga && (
+            <p className="text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl p-3 max-w-md mx-auto">
+              Offre Teranga : votre premier mois payé avec Wave est à moitié prix (2 450 F au lieu de 4 900 F pour Starter).
+            </p>
+          )}
           {shop.subscription_provider === "wave" && shop.paid_until && (
             <p className="text-sm font-medium">
               Abonnement Wave payé jusqu'au {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.

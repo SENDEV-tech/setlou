@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { TerangaBanner } from "@/components/marketing/teranga-banner";
 
 const title = "Setlou — Vos ventes WhatsApp, enfin comptées";
 const description =
@@ -310,6 +311,7 @@ function FeaturesPreview() {
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground">
+      <TerangaBanner />
       <Navbar />
 
       <main className="flex-1">
