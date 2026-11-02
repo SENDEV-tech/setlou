@@ -28,6 +28,8 @@ import {
 
 interface ProductGridProps {
   products: any[];
+  /** CA et unités vendues sur 30 jours (commandes payées), par id produit. */
+  sales?: Record<string, { quantity: number; revenue: number }>;
 }
 
 function StockBadge({ product }: { product: any }) {
@@ -44,7 +46,7 @@ function StockBadge({ product }: { product: any }) {
   return <Badge variant="secondary">{stock} en stock</Badge>;
 }
 
-export function ProductGrid({ products }: ProductGridProps) {
+export function ProductGrid({ products, sales = {} }: ProductGridProps) {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -119,6 +121,11 @@ export function ProductGrid({ products }: ProductGridProps) {
                   {product.description}
                 </p>
               )}
+              <p className="mt-2 text-xs text-muted-foreground">
+                {sales[product.id]
+                  ? <>30 j : <span className="font-medium text-foreground">{formatXOF(sales[product.id].revenue)}</span> · {sales[product.id].quantity} vendu{sales[product.id].quantity > 1 ? "s" : ""}</>
+                  : "30 j : aucune vente"}
+              </p>
             </CardContent>
             <CardFooter className="p-4 pt-0 flex items-center justify-between gap-2">
               <div className="font-bold text-primary">{formatXOF(product.price_xof)}</div>

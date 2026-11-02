@@ -1,4 +1,4 @@
-import { getProducts, getShop } from "@/server/data/supabase-store";
+import { getProducts, getShop, getProductSales } from "@/server/data/supabase-store";
 import { ShopLinkCard } from "@/components/products/shop-link-card";
 import { ProductGrid } from "@/components/products/product-grid";
 import { ProductDialog } from "@/components/products/product-dialog";
@@ -9,8 +9,15 @@ export default async function ProductsPage(props: { searchParams: Promise<{ q?: 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.toLowerCase() : "";
   
-  let products = await getProducts();
-  const shop = await getShop();
+  const [allProducts, shop, sales] = await Promise.all([
+    getProducts(),
+    getShop(),
+    getProductSales(),
+  ]);
+  let products = allProducts;
+  const salesByProduct = Object.fromEntries(
+    sales.filter(s => s.productId).map(s => [s.productId as string, { quantity: s.quantity, revenue: s.revenue }])
+  );
   
   if (query) {
     products = products.filter(p => p.name.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query));
@@ -46,7 +53,7 @@ export default async function ProductsPage(props: { searchParams: Promise<{ q?: 
         </div>
       </div>
       
-      <ProductGrid products={products} />
+      <ProductGrid products={products} sales={salesByProduct} />
     </div>
   );
 }

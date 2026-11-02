@@ -784,3 +784,55 @@ export async function getDashboardKPIs(shopId?: string, fromDate?: Date, toDate?
     chartData
   };
 }
+
+// --- CHIFFRE D'AFFAIRES PAR PRODUIT ---
+export interface ProductSales {
+  productId: string | null;
+  name: string;
+  quantity: number;
+  revenue: number;
+  share: number;
+}
+
+interface PaidOrderItemsRow {
+  order_items: {
+    product_id: string | null;
+    product_name: string;
+    quantity: number;
+    line_total_xof: number;
+  }[] | null;
+}
+
+/** CA et quantités vendues par produit, sur les commandes payées de la période (même filtre que getDashboardKPIs). */
+export async function getProductSales(shopId?: string, fromDate?: Date, toDate?: Date): Promise<ProductSales[]> {
+  const sid = shopId || await getCurrentShopId();
+  const to = toDate || new Date();
+  const from = fromDate || new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const { data, error } = await (await createClient())
+    .from('orders')
+    .select('order_items(product_id, product_name, quantity, line_total_xof)')
+    .eq('shop_id', sid)
+    .eq('status', 'paid')
+    .gte('created_at', from.toISOString())
+    .lte('created_at', to.toISOString());
+
+  if (error) throw error;
+
+  const byProduct = new Map<string, ProductSales>();
+  let total = 0;
+  for (const order of (data ?? []) as PaidOrderItemsRow[]) {
+    for (const item of order.order_items ?? []) {
+      const key = item.product_id ?? `nom:${item.product_name}`;
+      const entry = byProduct.get(key) ?? { productId: item.product_id, name: item.product_name, quantity: 0, revenue: 0, share: 0 };
+      entry.quantity += item.quantity;
+      entry.revenue += item.line_total_xof;
+      byProduct.set(key, entry);
+      total += item.line_total_xof;
+    }
+  }
+
+  return Array.from(byProduct.values())
+    .map(p => ({ ...p, share: total > 0 ? Math.round((p.revenue / total) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.revenue - a.revenue);
+}
