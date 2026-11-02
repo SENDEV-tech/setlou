@@ -1,6 +1,7 @@
-import { getDashboardKPIs, getLowStockProducts } from "@/server/data/supabase-store";
+import { getDashboardKPIs, getLowStockProducts, getProductSales } from "@/server/data/supabase-store";
 import { KPICards } from "@/components/dashboard/kpi-cards";
 import { SalesChart } from "@/components/dashboard/sales-chart";
+import { TopProducts } from "@/components/dashboard/top-products";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Clock, CheckCircle2, XCircle, PackageX } from "lucide-react";
@@ -19,9 +20,10 @@ export default async function DashboardPage(props: DashboardPageProps) {
   const to = toParam ? new Date(toParam) : new Date();
   const from = fromParam ? new Date(fromParam) : new Date(new Date().setDate(new Date().getDate() - 30));
 
-  const [kpis, lowStockProducts] = await Promise.all([
+  const [kpis, lowStockProducts, productSales] = await Promise.all([
     getDashboardKPIs(undefined, from, to),
     getLowStockProducts(),
+    getProductSales(undefined, from, to),
   ]);
   const chartData = kpis.chartData;
 
@@ -107,6 +109,7 @@ export default async function DashboardPage(props: DashboardPageProps) {
           </CardContent>
         </Card>
       </div>
+      <TopProducts products={productSales} />
     </div>
   );
 }
