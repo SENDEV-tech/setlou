@@ -35,7 +35,7 @@ export function TerangaBanner() {
       </span>
       <span className="font-black text-[#fdef42]">Offre Teranga</span>
       <span className="mx-1.5 opacity-60">·</span>
-      20 jours gratuits + 1<sup>er</sup> mois à moitié prix pour toute inscription avant le 15 novembre
+      Gratuit à vie + 1<sup>er</sup> mois Starter à moitié prix pour toute inscription avant le 15 novembre
       <ArrowRight className="ml-1 inline h-4 w-4 transition-transform group-hover:translate-x-0.5" />
     </Link>
   );

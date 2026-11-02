@@ -1,8 +1,13 @@
-import { getShop } from "@/server/data/supabase-store";
+import { getPlanUsage, getShop } from "@/server/data/supabase-store";
 import { SettingsForm } from "@/components/settings/settings-form";
 
 export default async function SettingsPage() {
-  const shop = await getShop();
+  const [shop, { plan, usage }] = await Promise.all([getShop(), getPlanUsage()]);
+  const summary = plan.paid
+    ? plan.monthlyOrders === null
+      ? "Commandes illimitées."
+      : `${usage.ordersThisMonth}/${plan.monthlyOrders} commandes ce mois-ci.`
+    : `Gratuit à vie : ${usage.ordersThisMonth}/${plan.monthlyOrders} commandes ce mois-ci et ${usage.products}/${plan.products} produits.`;
 
   return (
     <div className="flex-1 max-w-5xl">
@@ -13,7 +18,7 @@ export default async function SettingsPage() {
         </p>
       </div>
       
-      <SettingsForm shop={shop} />
+      <SettingsForm shop={shop} plan={{ name: plan.name, paid: plan.paid, summary }} />
     </div>
   );
 }

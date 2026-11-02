@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getCurrentShopId, getShop } from "@/server/data/supabase-store";
-import { TRIAL_DAYS } from "@/server/data/wave";
 
 export const dynamic = "force-dynamic";
 
@@ -58,17 +57,15 @@ async function handleCheckout(plan: string, origin: string) {
       sessionParams.customer_email = shop.email; // assuming shop has an email or we can use metadata
     }
 
-    // L'essai gratuit est donné à l'inscription : Stripe ne prolonge que ce qu'il en reste
-    // (Stripe exige au moins 48 h), et les boutiques sans essai Setlou gardent les 20 jours.
+    // Formule gratuite : pas d'essai Stripe, on paie à partir d'aujourd'hui. Seules les
+    // boutiques encore dans l'ancien essai de 20 jours gardent ce qu'il en reste (Stripe exige 48 h).
     sessionParams.subscription_data = {
       metadata: {
         shopId: shopId,
       }
     };
     const paidUntil = shop.paid_until ? new Date(shop.paid_until).getTime() : 0;
-    if (!shop.subscription_provider && !shop.stripe_subscription_id) {
-      sessionParams.subscription_data.trial_period_days = TRIAL_DAYS;
-    } else if (paidUntil > Date.now() + 48 * 60 * 60 * 1000) {
+    if (paidUntil > Date.now() + 48 * 60 * 60 * 1000) {
       sessionParams.subscription_data.trial_end = Math.floor(paidUntil / 1000);
     }
 

@@ -65,6 +65,8 @@ export function ProductDialog({ product, open: controlledOpen, onOpenChange, tri
       if (result.success) {
         toast.success(isEdit ? "Produit modifié avec succès !" : "Produit ajouté avec succès !");
         setOpen(false);
+      } else if ("error" in result && typeof result.error === "string") {
+        toast.error(result.error);
       }
     } catch (error) {
       toast.error(isEdit ? "Erreur lors de la modification." : "Erreur lors de l'ajout.");

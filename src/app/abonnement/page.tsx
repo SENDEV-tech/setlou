@@ -1,6 +1,8 @@
-import { getCurrentShopId, getShop, getCurrentProfile } from "@/server/data/supabase-store";
+import { getCurrentShopId, getShop, getCurrentProfile, getPlanUsage } from "@/server/data/supabase-store";
+import { FREE_PLAN } from "@/server/data/plan";
 import { Button } from "@/components/ui/button";
-import { Check, LogOut } from "lucide-react";
+import { ArrowLeft, Check, LogOut } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions/auth";
 import { isTerangaEligible, isWaveConfigured } from "@/server/data/wave";
@@ -25,10 +27,10 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
   }
 
   const shopId = await getCurrentShopId();
-  const shop = await getShop(shopId);
-  // L'essai est donné à l'inscription ; seules les anciennes boutiques sans essai le démarrent par carte.
+  const [shop, { plan, usage }] = await Promise.all([getShop(shopId), getPlanUsage(shopId)]);
   const teranga = isWaveConfigured() && (await isTerangaEligible(shopId));
-  const stripeLabel = shop.subscription_provider || shop.stripe_subscription_id ? "Payer par carte" : "Commencer l'essai gratuit";
+  const stripeLabel = "Payer par carte";
+  const dateFr = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -40,30 +42,37 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
           </div>
           Setlou
         </div>
-        <form action={logoutAction}>
-          <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground hover:text-red-500">
-            <LogOut className="h-4 w-4 mr-2" />
-            Se déconnecter
-          </Button>
-        </form>
+        <div className="flex items-center gap-1">
+          <Link href="/tableau-de-bord" className="inline-flex h-8 items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Retour à ma boutique</span>
+            <span className="sm:hidden">Retour</span>
+          </Link>
+          <form action={logoutAction}>
+            <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground hover:text-red-500">
+              <LogOut className="h-4 w-4 sm:mr-2" />
+              <span className="sr-only sm:not-sr-only">Se déconnecter</span>
+            </Button>
+          </form>
+        </div>
       </header>
 
       <main className="max-w-6xl mx-auto py-12 px-4 space-y-8">
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold tracking-tight">Choisissez votre plan</h1>
           <p className="text-muted-foreground text-lg">
-            {shop.subscription_provider === "trial"
-              ? "Votre essai gratuit de 20 jours est inclus dès l'inscription. Choisissez un plan pour continuer après."
-              : "L'abonnement est requis pour accéder à l'application."}
+            Setlou est gratuit à vie jusqu&apos;à {FREE_PLAN.monthlyOrders} commandes par mois et {FREE_PLAN.products} produits.
+            Passez à un abonnement quand votre boutique grandit.
           </p>
-          {shop.subscription_provider === "trial" && shop.paid_until && (
-            <p className="text-sm font-medium">
-              {new Date(shop.paid_until).getTime() > Date.now() ? "Essai gratuit jusqu'au " : "Essai gratuit terminé le "}
-              {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
-            </p>
-          )}
+          <p className="text-sm font-medium">
+            Votre formule actuelle : {plan.name}
+            {plan.trialUntil
+              ? ` (essai offert jusqu'au ${dateFr(plan.trialUntil)}, ensuite formule gratuite si vous ne choisissez pas de plan)`
+              : ""}
+            .
+          </p>
           {isWaveConfigured() && <p className="text-muted-foreground text-sm">
-            Avec Wave, chaque paiement ajoute 30 jours d'accès, sans prélèvement automatique. Payé pendant l'essai, le mois commence à la fin de l'essai.
+            Avec Wave, chaque paiement ajoute 30 jours d&apos;accès, sans prélèvement automatique. Sans nouveau paiement, la boutique repasse sur la formule gratuite.
           </p>}
           {teranga && (
             <p className="text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl p-3 max-w-md mx-auto">
@@ -72,7 +81,7 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
           )}
           {shop.subscription_provider === "wave" && shop.paid_until && (
             <p className="text-sm font-medium">
-              Abonnement Wave payé jusqu'au {new Date(shop.paid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
+              Abonnement Wave payé jusqu'au {dateFr(shop.paid_until)}.
             </p>
           )}
           {stripe === "erreur" && (
@@ -92,7 +101,32 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
           )}
         </div>
 
-      <div className="grid md:grid-cols-3 gap-8 pt-8 items-stretch">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 pt-8 items-stretch">
+        {/* Formule gratuite */}
+        <div className={`border bg-card rounded-2xl p-7 shadow-sm flex flex-col justify-between ${plan.key === "free" ? "ring-2 ring-primary border-primary" : ""}`}>
+          <div>
+            <div className="mb-4">
+              <h3 className="text-2xl font-bold">Gratuit</h3>
+              <div className="mt-4 flex items-baseline text-4xl font-extrabold">
+                0
+                <span className="ml-1 text-base font-medium text-muted-foreground">FCFA, à vie</span>
+              </div>
+              <p className="text-muted-foreground text-sm mt-3">Pour démarrer et prendre Setlou en main, sans payer.</p>
+            </div>
+            <ul className="space-y-3.5 mb-8 font-medium text-sm text-left">
+              <li className="flex items-start gap-2.5"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> <span><strong>{FREE_PLAN.monthlyOrders} commandes</strong> par mois</span></li>
+              <li className="flex items-start gap-2.5"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> <span><strong>{FREE_PLAN.products} produits</strong></span></li>
+              <li className="flex items-start gap-2.5"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> <span>Lien boutique et liens de paiement</span></li>
+              <li className="flex items-start gap-2.5"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> <span>{FREE_PLAN.assistants} profil assistant</span></li>
+            </ul>
+          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            {plan.key === "free"
+              ? `Ce mois-ci : ${usage.ordersThisMonth}/${FREE_PLAN.monthlyOrders} commandes · ${usage.products}/${FREE_PLAN.products} produits`
+              : "Sans abonnement, votre boutique revient sur cette formule."}
+          </p>
+        </div>
+
         {/* Starter Plan */}
         <div className="border bg-card rounded-2xl p-7 shadow-sm flex flex-col justify-between">
           <div>
@@ -125,7 +159,7 @@ export default async function AbonnementPage(props: { searchParams: Promise<{ wa
         </div>
 
         {/* Pro Plan */}
-        <div className="border-2 border-primary bg-card rounded-2xl p-7 shadow-lg relative flex flex-col justify-between scale-105 z-10">
+        <div className="border-2 border-primary bg-card rounded-2xl p-7 shadow-lg relative flex flex-col justify-between">
           <div className="absolute -top-3.5 left-0 right-0 flex justify-center">
             <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
               Le plus populaire

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { TRIAL_DAYS } from "@/server/data/wave";
+import { FREE_PLAN } from "@/server/data/plan";
 
 export async function loginAction(formData: FormData) {
   const emailOrUsername = formData.get("email") as string;
@@ -92,13 +92,14 @@ export async function signupAction(formData: FormData) {
       name: shopName,
       slug: shopName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       whatsapp_number: whatsapp,
-      subscription_plan: 'starter',
-      // Essai gratuit sans moyen de paiement ; ensuite Wave ou carte.
-      subscription_status: 'trialing',
-      subscription_provider: 'trial',
-      paid_until: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
-      monthly_orders_limit: 100,
-      max_assistants: 1,
+      // Formule gratuite à vie (limites dans src/server/data/plan.ts) ;
+      // abonnement Wave ou carte seulement quand la boutique grandit.
+      subscription_plan: 'free',
+      subscription_status: null,
+      subscription_provider: null,
+      paid_until: null,
+      monthly_orders_limit: FREE_PLAN.monthlyOrders,
+      max_assistants: FREE_PLAN.assistants,
     })
     .select()
     .single();

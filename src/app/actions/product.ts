@@ -32,18 +32,23 @@ export async function createProductAction(formData: FormData) {
     image_path = `data:${image.type};base64,${buffer.toString('base64')}`;
   }
 
-  await createProduct({
-    name,
-    description,
-    price,
-    stock,
-    image_path
-  });
+  try {
+    await createProduct({
+      name,
+      description,
+      price,
+      stock,
+      image_path
+    });
+  } catch (error) {
+    // Message affiché tel quel au vendeur (ex. limite de la formule gratuite).
+    return { success: false as const, error: error instanceof Error ? error.message : "Erreur lors de l'ajout." };
+  }
 
   revalidatePath("/produits");
   revalidatePath("/commandes");
 
-  return { success: true };
+  return { success: true as const };
 }
 
 export async function updateProductAction(id: string, formData: FormData) {

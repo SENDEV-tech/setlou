@@ -8,6 +8,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { LogOut } from "lucide-react";
 import { OrderNotifier } from "@/components/notifications/order-notifier";
 import { expirePaidPeriod } from "@/server/data/wave";
+import { PlanBanner } from "@/components/layout/plan-banner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -17,8 +18,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const headersList = await headers();
   const pathname = headersList.get("x-invoke-path") || "";
 
-  // Essai gratuit (20 jours) et abonnement Wave (30 jours par paiement) ont une date
-  // de fin : à échéance, la boutique repasse en impayé.
+  // Abonnement Wave (30 jours par paiement) ou ancien essai arrivé à échéance : la boutique
+  // repasse en impayé et retombe sur la formule gratuite (pas de blocage).
   if (
     (shop.subscription_provider === "wave" || shop.subscription_provider === "trial") &&
     (shop.subscription_status === "active" || shop.subscription_status === "trialing") &&
@@ -27,14 +28,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ) {
     await expirePaidPeriod(shop.id);
     shop.subscription_status = "past_due";
-  }
-
-  // Subscription Enforcement for owners
-  if (profile.role === "owner") {
-    const status = shop.subscription_status;
-    if (status !== "active" && status !== "trialing") {
-      redirect("/abonnement");
-    }
   }
 
   // RBAC: assistants can only access /commandes and /produits
@@ -69,6 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">
+          {profile.role === "owner" && <PlanBanner shopId={shopId} />}
           {children}
         </main>
       </SidebarInset>
