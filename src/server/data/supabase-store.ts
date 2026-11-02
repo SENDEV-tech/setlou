@@ -6,6 +6,9 @@ export type OrderStatus = 'pending' | 'verifying' | 'paid' | 'cancelled' | 'expi
 
 // In a real application, we'd use actual logged-in user data.
 import { createClient } from "@/utils/supabase/server";
+import { getShopPlan, startOfMonthIso, UPGRADE_HINT, type ShopPlan } from "@/server/data/plan";
+
+const PLAN_FIELDS = 'subscription_status, subscription_provider, subscription_plan, paid_until, monthly_orders_limit, max_assistants';
 
 export async function getCurrentUserId(): Promise<string> {
   const supabaseServer = await createClient();
@@ -64,6 +67,24 @@ export async function getShop(slugOrId?: string) {
   return data;
 }
 
+export type PlanUsage = { ordersThisMonth: number, products: number };
+
+// Formule de la boutique et ce qu'elle a consommé ce mois-ci.
+export async function getPlanUsage(shopId?: string): Promise<{ plan: ShopPlan, usage: PlanUsage }> {
+  const sid = shopId || await getCurrentShopId();
+  const supabaseServer = await createClient();
+  const [{ data: shop, error }, { count: ordersThisMonth }, { count: products }] = await Promise.all([
+    supabaseServer.from('shops').select(PLAN_FIELDS).eq('id', sid).single(),
+    supabaseServer.from('orders').select('id', { count: 'exact', head: true }).eq('shop_id', sid).gte('created_at', startOfMonthIso()),
+    supabaseServer.from('products').select('id', { count: 'exact', head: true }).eq('shop_id', sid).is('archived_at', null),
+  ]);
+  if (error || !shop) throw error || new Error('Boutique introuvable.');
+  return {
+    plan: getShopPlan(shop),
+    usage: { ordersThisMonth: ordersThisMonth || 0, products: products || 0 },
+  };
+}
+
 export async function updateShopSettings(settings: any) {
   const shopId = await getCurrentShopId();
   const supabaseServer = await createClient();
@@ -103,6 +124,12 @@ export async function getProduct(id: string) {
 export async function createProduct(data: { name: string, description?: string, price: number, stock: number | null, image_path?: string }) {
   const shop_id = await getCurrentShopId();
   const created_by = await getCurrentUserId();
+
+  // Formule gratuite : nombre de produits limité.
+  const { plan, usage } = await getPlanUsage(shop_id);
+  if (plan.products !== null && usage.products >= plan.products) {
+    throw new Error(`Limite atteinte : la formule gratuite permet ${plan.products} produits. ${UPGRADE_HINT}`);
+  }
   
   const product = {
     shop_id,
@@ -179,24 +206,24 @@ export async function createProfile(data: { full_name: string, role: Role, usern
   const shop_id = await getCurrentShopId();
   const supabaseServer = await createClient();
 
-  // Vérifier la limite d'assistants selon le plan en base de données
+  // Limite d'assistants selon la formule (gratuite ou abonnement en cours).
   if (data.role === 'assistant') {
     const { data: shop } = await supabaseServer
       .from('shops')
-      .select('max_assistants, subscription_plan')
+      .select(PLAN_FIELDS)
       .eq('id', shop_id)
       .single();
+    const plan = shop ? getShopPlan(shop) : null;
 
-    if (shop && shop.max_assistants !== null && shop.max_assistants !== undefined) {
+    if (plan && plan.assistants !== null) {
       const { count: assistantCount } = await supabaseServer
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('shop_id', shop_id)
         .eq('role', 'assistant');
 
-      if ((assistantCount || 0) >= shop.max_assistants) {
-        const planName = shop.subscription_plan === 'starter' ? 'Starter' : (shop.subscription_plan || 'actuelle');
-        throw new Error(`Limite atteinte : votre formule ${planName} autorise au maximum ${shop.max_assistants} assistant${shop.max_assistants > 1 ? 's' : ''}. Passez au forfait Pro pour ajouter jusqu'à 5 assistants !`);
+      if ((assistantCount || 0) >= plan.assistants) {
+        throw new Error(`Limite atteinte : votre formule ${plan.name} autorise au maximum ${plan.assistants} assistant${plan.assistants > 1 ? 's' : ''}. Passez au forfait Pro pour ajouter jusqu'à 5 assistants !`);
       }
     }
   }
@@ -357,28 +384,12 @@ export async function createOrder(data: { customerName: string, customerPhone: s
   
   const supabaseServer = await createClient();
 
-  // Vérifier la limite mensuelle de commandes selon le plan en base de données
-  const { data: shop } = await supabaseServer
-    .from('shops')
-    .select('monthly_orders_limit, subscription_plan')
-    .eq('id', shop_id)
-    .single();
-
-  if (shop && shop.monthly_orders_limit !== null && shop.monthly_orders_limit !== undefined) {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const { count: monthlyOrdersCount } = await supabaseServer
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('shop_id', shop_id)
-      .gte('created_at', startOfMonth.toISOString());
-
-    if ((monthlyOrdersCount || 0) >= shop.monthly_orders_limit) {
-      const planName = shop.subscription_plan === 'starter' ? 'Starter' : (shop.subscription_plan || 'actuelle');
-      throw new Error(`Limite mensuelle atteinte : votre formule ${planName} est limitée à ${shop.monthly_orders_limit} commandes par mois. Passez au forfait Pro pour générer des liens de paiement en illimité !`);
-    }
+  // Limite mensuelle de commandes selon la formule (gratuite ou abonnement en cours).
+  const { plan, usage } = await getPlanUsage(shop_id);
+  if (plan.monthlyOrders !== null && usage.ordersThisMonth >= plan.monthlyOrders) {
+    throw new Error(plan.paid
+      ? `Limite mensuelle atteinte : votre formule ${plan.name} est limitée à ${plan.monthlyOrders} commandes par mois. Passez au forfait Pro pour générer des liens de paiement en illimité !`
+      : `Vous avez utilisé vos ${plan.monthlyOrders} commandes gratuites de ce mois. ${UPGRADE_HINT} Le compteur repart le 1er du mois.`);
   }
 
   // Handle Customer
@@ -573,21 +584,21 @@ export async function createShopOrder(data: { slug: string, customerName: string
 
   const { data: shop } = await adminClient
     .from('shops')
-    .select('id, monthly_orders_limit')
+    .select(`id, ${PLAN_FIELDS}`)
     .eq('slug', data.slug)
     .maybeSingle();
   if (!shop) throw new Error('Boutique introuvable.');
 
-  if (shop.monthly_orders_limit !== null && shop.monthly_orders_limit !== undefined) {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+  // Formule gratuite : les commandes des clients passent encore au-delà des 50 commandes
+  // (jusqu'au plafond du lien boutique) pour que le vendeur ne perde pas de vente.
+  const limit = getShopPlan(shop).shopLinkMonthlyOrders;
+  if (limit !== null) {
     const { count: monthlyOrdersCount } = await adminClient
       .from('orders')
       .select('*', { count: 'exact', head: true })
       .eq('shop_id', shop.id)
-      .gte('created_at', startOfMonth.toISOString());
-    if ((monthlyOrdersCount || 0) >= shop.monthly_orders_limit) {
+      .gte('created_at', startOfMonthIso());
+    if ((monthlyOrdersCount || 0) >= limit) {
       throw new Error("Cette boutique ne prend plus de commandes en ligne ce mois-ci. Contactez-la directement sur WhatsApp.");
     }
   }

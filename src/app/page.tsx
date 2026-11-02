@@ -81,11 +81,23 @@ const steps = [
 
 const plans = [
   {
+    name: "Gratuit",
+    price: "0",
+    period: "FCFA, à vie",
+    pitch: "Pour démarrer et prendre Setlou en main, sans rien payer.",
+    features: ["50 commandes par mois", "25 produits", "Lien boutique et liens de paiement", "Statistiques de base"],
+    href: "/signup",
+    cta: "Commencer gratuitement",
+    featured: false,
+  },
+  {
     name: "Starter",
     price: "4.900",
     pitch: "Pour un vendeur seul qui veut enfin connaître ses chiffres.",
-    features: ["100 commandes par mois", "1 profil assistant", "Liens de paiement personnalisés", "Statistiques de base"],
-    href: "/signup?plan=starter",
+    features: ["100 commandes par mois", "Produits illimités", "1 profil assistant", "Liens de paiement personnalisés"],
+    period: "FCFA / mois",
+    href: "/signup",
+    cta: "Commencer gratuitement",
     featured: false,
   },
   {
@@ -93,7 +105,9 @@ const plans = [
     price: "9.900",
     pitch: "Pour les boutiques qui vendent avec une équipe.",
     features: ["Commandes illimitées", "Jusqu'à 5 profils assistants", "Ventes par assistant", "Support prioritaire WhatsApp"],
-    href: "/signup?plan=pro",
+    period: "FCFA / mois",
+    href: "/signup",
+    cta: "Commencer gratuitement",
     featured: true,
   },
   {
@@ -101,7 +115,9 @@ const plans = [
     price: "19.900",
     pitch: "Pour les grosses équipes et les gros volumes.",
     features: ["Tout le plan Pro", "Assistants illimités", "Accompagnement à la mise en place"],
-    href: "/signup?plan=entreprise",
+    period: "FCFA / mois",
+    href: "/signup",
+    cta: "Commencer gratuitement",
     featured: false,
   },
 ];
@@ -109,7 +125,7 @@ const plans = [
 const faqs = [
   {
     q: "L'argent passe-t-il par Setlou ?",
-    a: "Non. Le client paie directement sur votre numéro Wave ou Orange Money. Setlou ne touche pas votre argent et ne prend aucune commission sur vos ventes : vous ne payez que l'abonnement.",
+    a: "Non. Le client paie directement sur votre numéro Wave ou Orange Money. Setlou ne touche pas votre argent et ne prend aucune commission sur vos ventes : Setlou est gratuit jusqu'à 50 commandes par mois ; au-delà, vous payez un abonnement fixe.",
   },
   {
     q: "Comment je sais que le client a vraiment payé ?",
@@ -128,8 +144,8 @@ const faqs = [
     a: "Non. Vous continuez à vendre sur votre WhatsApp habituel. Setlou vous donne simplement un lien à envoyer et un tableau de bord pour suivre vos ventes.",
   },
   {
-    q: "Que se passe-t-il après l'essai de 20 jours ?",
-    a: "Votre boutique est mise en pause jusqu'à ce que vous choisissiez un plan. Vos produits et vos commandes sont conservés.",
+    q: "Setlou est-il vraiment gratuit ?",
+    a: "Oui, à vie, jusqu'à 50 commandes par mois et 25 produits. Quand votre boutique dépasse ces limites, vous passez à Starter (4 900 F/mois). Vos clients peuvent continuer à commander sur votre lien boutique pendant que vous vous décidez.",
   },
 ];
 
@@ -163,7 +179,7 @@ function Navbar() {
             Se connecter
           </Link>
           <Link href="/signup" className={buttonVariants({ className: "rounded-full px-5" })}>
-            Essayer gratuitement
+            Créer ma boutique gratuite
           </Link>
         </div>
 
@@ -182,7 +198,7 @@ function Navbar() {
               Se connecter
             </Link>
             <Link href="/signup" className={buttonVariants({ size: "lg", className: "mt-2 w-full rounded-full" })}>
-              Essayer gratuitement
+              Créer ma boutique gratuite
             </Link>
           </div>
         </details>
@@ -331,7 +347,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-7 text-base" })}>
-                Essayer 20 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+                Commencer gratuitement <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
               <Link
                 href="#comment"
@@ -428,7 +444,7 @@ export default function LandingPage() {
             <h2 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl">Votre argent ne passe pas par nous.</h2>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               Vos clients paient directement sur votre Wave ou votre Orange Money. Pas d&apos;intermédiaire, pas de délai
-              de reversement, pas de commission sur vos ventes. Vous payez seulement l&apos;abonnement.
+              de reversement, pas de commission sur vos ventes. Gratuit jusqu&apos;à 50 commandes par mois, puis un abonnement fixe.
             </p>
           </div>
         </section>
@@ -438,9 +454,9 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
               <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Des tarifs simples</h2>
-              <p className="mt-3 text-muted-foreground">20 jours d&apos;essai gratuit sur tous les plans.</p>
+              <p className="mt-3 text-muted-foreground">Gratuit à vie jusqu&apos;à 50 commandes par mois et 25 produits. Vous payez seulement quand vous vendez beaucoup.</p>
             </div>
-            <div className="mt-12 grid gap-6 md:grid-cols-3">
+            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {plans.map((plan) => (
                 <div
                   key={plan.name}
@@ -458,7 +474,7 @@ export default function LandingPage() {
                   <p className="mt-1 min-h-12 text-sm text-muted-foreground">{plan.pitch}</p>
                   <p className="mt-5">
                     <span className="text-4xl font-black tabular-nums">{plan.price}</span>
-                    <span className="ml-1 text-sm text-muted-foreground">FCFA / mois</span>
+                    <span className="ml-1 text-sm text-muted-foreground">{plan.period}</span>
                   </p>
                   <ul className="mt-6 flex-1 space-y-3 text-sm">
                     {plan.features.map((f) => (
@@ -475,7 +491,7 @@ export default function LandingPage() {
                       className: "mt-8 h-11 w-full rounded-full",
                     })}
                   >
-                    Commencer l&apos;essai
+                    {plan.cta}
                   </Link>
                 </div>
               ))}
@@ -516,7 +532,7 @@ export default function LandingPage() {
                 className: "mt-8 h-12 rounded-full px-8 text-base",
               })}
             >
-              Essayer 20 jours gratuits <ArrowRight className="ml-1 h-4 w-4" />
+              Commencer gratuitement <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
         </section>

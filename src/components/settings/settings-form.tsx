@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateShopSettingsAction } from "@/app/actions/settings";
 import { toast } from "sonner";
-import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save, CreditCard, CheckCircle2, Trash2 } from "lucide-react";
+import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save, CreditCard, Trash2 } from "lucide-react";
 import { SHOP_STYLES, SHOP_STYLE_LABELS, toShopStyle, type ShopStyle } from "@/lib/shop-style";
 
 interface SettingsFormProps {
   shop: any;
+  plan: { name: string; paid: boolean; summary: string };
 }
 
 const compressImage = (file: File, maxDim = 512, quality = 0.85): Promise<string> => {
@@ -55,7 +56,7 @@ const compressImage = (file: File, maxDim = 512, quality = 0.85): Promise<string
   });
 };
 
-export function SettingsForm({ shop }: SettingsFormProps) {
+export function SettingsForm({ shop, plan }: SettingsFormProps) {
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(shop.logo_path || null);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
@@ -359,132 +360,19 @@ export function SettingsForm({ shop }: SettingsFormProps) {
           </TabsContent>
 
           <TabsContent value="subscription" className="mt-0 space-y-6">
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium">Gérer votre abonnement</h3>
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                Modifiez votre plan d'abonnement. Le changement sera pris en compte immédiatement.
-              </p>
-              
-              <div className="grid md:grid-cols-3 gap-6 max-w-5xl">
-                {/* Plan STARTER */}
-                <div className={`relative flex flex-col p-6 bg-card border rounded-2xl shadow-sm ${(!shop.stripe_price_id || shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || shop.subscription_plan === 'starter') && !shop.stripe_price_id?.includes('PRO') && !shop.stripe_price_id?.includes('ENTREPRISE') ? 'ring-2 ring-primary border-primary' : ''}`}>
-                  {((!shop.stripe_price_id && (!shop.subscription_plan || shop.subscription_plan === 'starter')) || shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID) && (
-                    <div className="absolute top-0 right-4 -translate-y-1/2">
-                      <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Actuel
-                      </span>
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold">Starter</h3>
-                  <div className="mt-4 flex items-baseline text-3xl font-extrabold">
-                    4.900 FCFA
-                    <span className="ml-1 text-base font-medium text-muted-foreground">/mois</span>
-                  </div>
-                  <ul className="mt-6 space-y-3 flex-1">
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span><strong>100 commandes</strong> par mois</span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span><strong>1 profil assistant</strong> inclus</span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Liens de paiement sécurisés</span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Statistiques de base</span>
-                    </li>
-                  </ul>
-                  <a
-                    href="/api/stripe/checkout?plan=starter"
-                    className={`mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${(!shop.stripe_price_id || shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || shop.subscription_plan === 'starter') ? 'bg-muted text-muted-foreground cursor-default pointer-events-none' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
-                  >
-                    {(!shop.stripe_price_id || shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || shop.subscription_plan === 'starter') ? 'Plan actuel' : 'Choisir Starter'}
-                  </a>
-                </div>
-
-                {/* Plan PRO */}
-                <div className={`relative flex flex-col p-6 bg-card border rounded-2xl shadow-sm ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ? 'ring-2 ring-primary border-primary' : ''}`}>
-                  {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID && (
-                    <div className="absolute top-0 right-4 -translate-y-1/2">
-                      <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Actuel
-                      </span>
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold">Pro</h3>
-                  <div className="mt-4 flex items-baseline text-3xl font-extrabold">
-                    9.900 FCFA
-                    <span className="ml-1 text-base font-medium text-muted-foreground">/mois</span>
-                  </div>
-                  <ul className="mt-6 space-y-3 flex-1">
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span><strong>Commandes illimitées</strong></span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Jusqu'à <strong>5 assistants</strong></span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Liens de paiement sécurisés</span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Support prioritaire WhatsApp</span>
-                    </li>
-                  </ul>
-                  <a
-                    href="/api/stripe/checkout?plan=pro"
-                    className={`mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ? 'bg-muted text-muted-foreground cursor-default pointer-events-none' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
-                  >
-                    {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ? 'Plan actuel' : 'Choisir Pro'}
-                  </a>
-                </div>
-
-                {/* Plan ENTREPRISE */}
-                <div className={`relative flex flex-col p-6 bg-card border rounded-2xl shadow-sm ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID ? 'ring-2 ring-primary border-primary' : ''}`}>
-                  {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID && (
-                    <div className="absolute top-0 right-4 -translate-y-1/2">
-                      <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Actuel
-                      </span>
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold">Entreprise</h3>
-                  <div className="mt-4 flex items-baseline text-3xl font-extrabold">
-                    19.900 FCFA
-                    <span className="ml-1 text-base font-medium text-muted-foreground">/mois</span>
-                  </div>
-                  <ul className="mt-6 space-y-3 flex-1">
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Tout le plan Pro</span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span><strong>Assistants illimités</strong></span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Marque blanche</span>
-                    </li>
-                    <li className="flex gap-x-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 flex-none text-primary" />
-                      <span>Accompagnement dédié</span>
-                    </li>
-                  </ul>
-                  <a
-                    href="/api/stripe/checkout?plan=entreprise"
-                    className={`mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID ? 'bg-muted text-muted-foreground cursor-default pointer-events-none' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
-                  >
-                    {shop.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_ENTREPRISE_PRICE_ID ? 'Plan actuel' : 'Passer à Entreprise'}
-                  </a>
-                </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Votre formule</h3>
+              <div className="rounded-2xl border bg-card p-5 max-w-xl space-y-3">
+                <p className="text-sm">
+                  Formule actuelle : <strong>{plan.name}</strong>
+                </p>
+                <p className="text-sm text-muted-foreground">{plan.summary}</p>
+                <a
+                  href="/abonnement"
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  {plan.paid ? "Gérer mon abonnement" : "Voir les abonnements"}
+                </a>
               </div>
             </div>
           </TabsContent>
