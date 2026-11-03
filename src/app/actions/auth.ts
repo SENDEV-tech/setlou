@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { FREE_PLAN } from "@/server/data/plan";
+import { getAppOrigin } from "@/server/data/wave";
 
 export async function loginAction(formData: FormData) {
   const emailOrUsername = formData.get("email") as string;
@@ -128,4 +129,107 @@ export async function signupAction(formData: FormData) {
   }
 
   return { success: true, requireEmailConfirmation: !authData.session };
+}
+
+// ---------------------------------------------------------------------------
+// Mot de passe oublié
+// ---------------------------------------------------------------------------
+
+export type PasswordActionResult =
+  | { ok: true; data: null }
+  | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
+
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Entrez l'adresse email de votre compte."),
+});
+
+export async function forgotPasswordAction(
+  formData: FormData
+): Promise<PasswordActionResult> {
+  const raw = String(formData.get("email") ?? "").trim();
+
+  // Les assistants se connectent avec un nom d'utilisateur (pas de vraie boîte mail).
+  if (raw && !raw.includes("@")) {
+    return {
+      ok: false,
+      error:
+        "Les comptes assistants n'ont pas d'email : demandez au propriétaire de la boutique de vous aider à retrouver l'accès.",
+    };
+  }
+
+  const parsed = forgotPasswordSchema.safeParse({ email: raw });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0].message,
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const origin = await getAppOrigin();
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/reinitialiser-mot-de-passe")}`,
+  });
+
+  // On ne révèle pas si l'email existe : seule la limite d'envoi est signalée.
+  if (error && error.status === 429) {
+    return {
+      ok: false,
+      error: "Trop de demandes. Patientez quelques minutes avant de réessayer.",
+    };
+  }
+
+  return { ok: true, data: null };
+}
+
+const resetPasswordSchema = z
+  .object({
+    password: z.string().min(6, "Le mot de passe doit faire au moins 6 caractères"),
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, {
+    message: "Les deux mots de passe ne sont pas identiques.",
+    path: ["confirm"],
+  });
+
+export async function resetPasswordAction(
+  formData: FormData
+): Promise<PasswordActionResult> {
+  const parsed = resetPasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirm: formData.get("confirm"),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0].message,
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      ok: false,
+      error: "Le lien a expiré. Refaites une demande de réinitialisation.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  if (error) {
+    if (error.code === "same_password") {
+      return { ok: false, error: "Choisissez un mot de passe différent de l'ancien." };
+    }
+    if (error.code === "weak_password") {
+      return { ok: false, error: "Mot de passe trop faible. Choisissez-en un plus long." };
+    }
+    return { ok: false, error: "Impossible de changer le mot de passe. Réessayez." };
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/tableau-de-bord");
 }

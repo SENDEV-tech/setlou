@@ -36,6 +36,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||
+    request.nextUrl.pathname.startsWith("/mot-de-passe-oublie") ||
+    request.nextUrl.pathname.startsWith("/reinitialiser-mot-de-passe") ||
     request.nextUrl.pathname.startsWith("/pay") ||
     request.nextUrl.pathname.startsWith("/boutique") ||
     request.nextUrl.pathname === "/sw.js" ||

@@ -4,7 +4,10 @@ import { createClient } from '@/utils/supabase/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/tableau-de-bord'
+  const rawNext = searchParams.get('next') ?? '/tableau-de-bord'
+  // Uniquement des chemins internes (évite une redirection vers un autre site).
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/tableau-de-bord'
+  const isPasswordReset = next.startsWith('/reinitialiser-mot-de-passe')
 
   if (code) {
     const supabase = await createClient()
@@ -13,6 +16,11 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
+  }
+
+  // Lien de réinitialisation expiré, déjà utilisé ou ouvert dans un autre navigateur.
+  if (isPasswordReset) {
+    return NextResponse.redirect(`${origin}/mot-de-passe-oublie?expire=1`)
   }
 
   // Return the user to an error page with some instructions
