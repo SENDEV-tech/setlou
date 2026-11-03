@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signupAction } from "@/app/actions/auth";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Store } from "lucide-react";
@@ -144,11 +145,10 @@ export default function SignupPage() {
             
             <div className="grid gap-2">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
-                autoComplete="off"
+                autoComplete="new-password"
                 required
               />
             </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { loginAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Store } from "lucide-react";
@@ -74,17 +75,16 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Mot de passe</Label>
                 <Link
-                  href="#"
+                  href="/mot-de-passe-oublie"
                   className="text-sm font-medium text-primary hover:underline"
                 >
                   Mot de passe oublié ?
                 </Link>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
-                autoComplete="off"
+                autoComplete="current-password"
                 required
               />
             </div>
