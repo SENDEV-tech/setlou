@@ -1,17 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatXOF } from "@/lib/money";
-import { CheckCircle2, Copy, ShieldCheck, Smartphone, Check } from "lucide-react";
+import { CheckCircle2, Copy, ShieldCheck, Smartphone, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markAsVerifyingAction } from "@/app/actions/order";
+import { startWavePaymentAction } from "@/app/actions/payments";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function PaymentClient({ order, token }: { order: any; token: string }) {
+type PaymentClientProps = {
+  order: any;
+  token: string;
+  waveEnabled: boolean;
+  waveNotice: "erreur" | "attente" | null;
+};
+
+export function PaymentClient({ order, token, waveEnabled, waveNotice }: PaymentClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [waveLoading, setWaveLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(!waveEnabled);
 
   const isAlreadyPaid = order.status === "paid";
   const isVerifying = order.status === "verifying";
@@ -26,6 +36,39 @@ export function PaymentClient({ order, token }: { order: any; token: string }) {
     setTimeout(() => setCopied(false), 2000);
     toast.success("Numéro copié !");
   };
+
+  // Retour de Wave avant la confirmation : on recharge la page jusqu'à ce que le webhook arrive.
+  useEffect(() => {
+    if (waveNotice === "erreur") toast.error("Le paiement Wave n'a pas abouti. Vous pouvez réessayer.");
+    if (waveNotice !== "attente" || order.status === "paid") return;
+    const timer = setInterval(() => router.refresh(), 4000);
+    const stop = setTimeout(() => clearInterval(timer), 60000);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(stop);
+    };
+  }, [waveNotice, order.status, router]);
+
+  const handleWave = async () => {
+    setWaveLoading(true);
+    const result = await startWavePaymentAction(token);
+    if (result.ok) {
+      window.location.href = result.data.url;
+      return;
+    }
+    setWaveLoading(false);
+    toast.error(result.error);
+  };
+
+  const waveButton = (
+    <Button
+      className="w-full h-14 text-lg font-bold rounded-xl bg-[#1dc8ff] hover:bg-[#12b5ea] text-slate-950 shadow-lg shadow-sky-200"
+      onClick={handleWave}
+      disabled={waveLoading}
+    >
+      {waveLoading ? "Ouverture de Wave..." : "Payer avec Wave"}
+    </Button>
+  );
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -67,6 +110,12 @@ export function PaymentClient({ order, token }: { order: any; token: string }) {
         <p className="text-sm bg-muted p-4 rounded-xl">
           Vous recevrez votre commande très prochainement.
         </p>
+        {waveEnabled && (
+          <div className="mt-6 space-y-2">
+            <p className="text-xs text-muted-foreground">Vous n&apos;avez pas encore payé ?</p>
+            {waveButton}
+          </div>
+        )}
       </div>
     );
   }
@@ -127,43 +176,75 @@ export function PaymentClient({ order, token }: { order: any; token: string }) {
           )}
         </div>
 
-        {/* Payment Instructions */}
-        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 space-y-4">
-          <div className="flex gap-3">
-            <div className="bg-blue-100 text-blue-600 rounded-full p-2 h-fit">
-              <Smartphone className="w-5 h-5" />
+        {waveNotice === "attente" && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-sm text-amber-800 text-center">
+            Wave confirme votre paiement. Cette page se met à jour toute seule dans quelques secondes.
+          </div>
+        )}
+
+        {waveEnabled && (
+          <div className="space-y-2">
+            {waveButton}
+            <p className="text-center text-xs text-slate-400 flex items-center justify-center gap-1">
+              <ShieldCheck className="w-4 h-4" />
+              Paiement confirmé automatiquement
+            </p>
+          </div>
+        )}
+
+        {waveEnabled && (
+          <button
+            type="button"
+            onClick={() => setShowTransfer((v) => !v)}
+            className="w-full flex items-center justify-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+          >
+            Payer par transfert (Orange Money…)
+            <ChevronDown className={`w-4 h-4 transition-transform ${showTransfer ? "rotate-180" : ""}`} />
+          </button>
+        )}
+
+        {showTransfer && (
+          <>
+            {/* Payment Instructions */}
+            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 space-y-4">
+              <div className="flex gap-3">
+                <div className="bg-blue-100 text-blue-600 rounded-full p-2 h-fit">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-1">Comment payer ?</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Envoyez exactement <strong className="text-slate-900">{formatXOF(order.total_xof)}</strong> au numéro ci-dessous via {waveEnabled ? "Orange Money ou Wave" : "Wave ou Orange Money"} :
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white border rounded-xl p-3 flex items-center justify-between shadow-sm">
+                <span className="text-lg font-bold tracking-wider text-slate-800">{shopPhone}</span>
+                <Button variant="secondary" size="sm" onClick={handleCopy} className="h-8">
+                  {copied ? <Check className="w-4 h-4 mr-1 text-green-600" /> : <Copy className="w-4 h-4 mr-1" />}
+                  {copied ? "Copié" : "Copier"}
+                </Button>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-slate-900 mb-1">Comment payer ?</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Envoyez exactement <strong className="text-slate-900">{formatXOF(order.total_xof)}</strong> au numéro ci-dessous via Wave ou Orange Money :
+
+            {/* Action */}
+            <div className="pt-2">
+              <Button
+                variant={waveEnabled ? "outline" : "default"}
+                className={waveEnabled ? "w-full h-12 font-semibold rounded-xl" : "w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/25"}
+                onClick={handleConfirm}
+                disabled={loading}
+              >
+                {loading ? "Chargement..." : "J'ai effectué le transfert"}
+              </Button>
+              <p className="text-center text-xs text-slate-400 mt-4 flex items-center justify-center gap-1">
+                <ShieldCheck className="w-4 h-4" />
+                Vérification manuelle par la boutique
               </p>
             </div>
-          </div>
-          
-          <div className="bg-white border rounded-xl p-3 flex items-center justify-between shadow-sm">
-            <span className="text-lg font-bold tracking-wider text-slate-800">{shopPhone}</span>
-            <Button variant="secondary" size="sm" onClick={handleCopy} className="h-8">
-              {copied ? <Check className="w-4 h-4 mr-1 text-green-600" /> : <Copy className="w-4 h-4 mr-1" />}
-              {copied ? "Copié" : "Copier"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Action */}
-        <div className="pt-2">
-          <Button 
-            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/25" 
-            onClick={handleConfirm}
-            disabled={loading}
-          >
-            {loading ? "Chargement..." : "J'ai effectué le transfert"}
-          </Button>
-          <p className="text-center text-xs text-slate-400 mt-4 flex items-center justify-center gap-1">
-            <ShieldCheck className="w-4 h-4" />
-            Vérification manuelle par la boutique
-          </p>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

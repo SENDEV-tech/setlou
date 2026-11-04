@@ -1,5 +1,6 @@
 import { getOrderByToken } from "@/server/data/supabase-store";
 import { formatXOF } from "@/lib/money";
+import { isShopWaveConnected } from "@/server/data/shop-wave";
 import { PaymentClient } from "./payment-client";
 
 export const metadata = {
@@ -8,8 +9,8 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PayPage(props: { params: Promise<{ token: string }> }) {
-  const params = await props.params;
+export default async function PayPage(props: { params: Promise<{ token: string }>; searchParams: Promise<{ wave?: string }> }) {
+  const [params, query] = await Promise.all([props.params, props.searchParams]);
   const token = params.token;
   
   let order;
@@ -33,7 +34,12 @@ export default async function PayPage(props: { params: Promise<{ token: string }
 
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <PaymentClient order={order} token={token} />
+      <PaymentClient
+        order={order}
+        token={token}
+        waveEnabled={await isShopWaveConnected(order.shop_id)}
+        waveNotice={query.wave === "erreur" || query.wave === "attente" ? query.wave : null}
+      />
     </main>
   );
 }
