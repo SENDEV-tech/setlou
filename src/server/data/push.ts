@@ -128,6 +128,18 @@ export async function notifyNewShopOrder(order: { id: string, shop_id: string, r
   console.log(`Push commande ${order.reference} : ${sent} appareil(s).${problem ? ` ${problem}` : ''}`);
 }
 
+export async function notifyOrderPaid(order: { id: string, shop_id: string, reference: string, total_xof: number, snapshot: { name?: string } | null, status: string }) {
+  const name = order.snapshot?.name || 'Un client';
+  const late = order.status === 'cancelled' || order.status === 'expired';
+  const { sent, problem } = await sendToShop(order.shop_id, {
+    title: late ? `Paiement Wave reçu sur une commande annulée` : `Commande ${order.reference} payée`,
+    body: `${name} a payé ${formatXOF(order.total_xof)} avec Wave.${late ? ` Commande ${order.reference}.` : ''}`,
+    url: '/commandes',
+    tag: `order-paid-${order.id}`,
+  });
+  console.log(`Push paiement ${order.reference} : ${sent} appareil(s).${problem ? ` ${problem}` : ''}`);
+}
+
 export async function sendTestPush(userId: string, shopId: string) {
   return sendToShop(shopId, {
     title: 'Notifications activées',

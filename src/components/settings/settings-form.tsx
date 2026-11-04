@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateShopSettingsAction } from "@/app/actions/settings";
 import { toast } from "sonner";
-import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save, CreditCard, Trash2 } from "lucide-react";
+import { Store, Paintbrush, MessageSquare, Image as ImageIcon, Save, CreditCard, Trash2, Wallet } from "lucide-react";
+import { WavePaymentSettings } from "@/components/settings/wave-payment-settings";
+import type { ShopWaveStatus } from "@/server/data/shop-wave";
 import { SHOP_STYLES, SHOP_STYLE_LABELS, toShopStyle, type ShopStyle } from "@/lib/shop-style";
 
 interface SettingsFormProps {
   shop: any;
   plan: { name: string; paid: boolean; summary: string };
+  wave: ShopWaveStatus;
 }
 
 const compressImage = (file: File, maxDim = 512, quality = 0.85): Promise<string> => {
@@ -56,7 +59,7 @@ const compressImage = (file: File, maxDim = 512, quality = 0.85): Promise<string
   });
 };
 
-export function SettingsForm({ shop, plan }: SettingsFormProps) {
+export function SettingsForm({ shop, plan, wave }: SettingsFormProps) {
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(shop.logo_path || null);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
@@ -134,7 +137,7 @@ export function SettingsForm({ shop, plan }: SettingsFormProps) {
   return (
     <form onSubmit={handleSubmit} className="mt-8" autoComplete="off">
       <Tabs defaultValue="general" className="w-full max-w-4xl">
-        <TabsList className="grid w-full h-auto grid-cols-4 gap-2 mb-8 bg-transparent">
+        <TabsList className="grid w-full h-auto grid-cols-3 sm:grid-cols-5 gap-2 mb-8 bg-transparent">
           <TabsTrigger value="general" className="flex items-center justify-center gap-2 data-[state=active]:bg-muted text-xs sm:text-sm">
             <Store className="w-4 h-4 shrink-0" />
             <span className="truncate">Général</span>
@@ -146,6 +149,10 @@ export function SettingsForm({ shop, plan }: SettingsFormProps) {
           <TabsTrigger value="messaging" className="flex items-center justify-center gap-2 data-[state=active]:bg-muted text-xs sm:text-sm">
             <MessageSquare className="w-4 h-4 shrink-0" />
             <span className="truncate">Messages</span>
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="flex items-center justify-center gap-2 data-[state=active]:bg-muted text-xs sm:text-sm">
+            <Wallet className="w-4 h-4 shrink-0" />
+            <span className="truncate">Paiements</span>
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center justify-center gap-2 data-[state=active]:bg-muted text-xs sm:text-sm">
             <CreditCard className="w-4 h-4 shrink-0" />
@@ -357,6 +364,10 @@ export function SettingsForm({ shop, plan }: SettingsFormProps) {
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="payments" className="mt-0 space-y-6">
+            <WavePaymentSettings initialStatus={wave} />
           </TabsContent>
 
           <TabsContent value="subscription" className="mt-0 space-y-6">

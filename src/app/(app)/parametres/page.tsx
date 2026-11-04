@@ -1,8 +1,10 @@
 import { getPlanUsage, getShop } from "@/server/data/supabase-store";
+import { getShopWaveStatus } from "@/server/data/shop-wave";
 import { SettingsForm } from "@/components/settings/settings-form";
 
 export default async function SettingsPage() {
   const [shop, { plan, usage }] = await Promise.all([getShop(), getPlanUsage()]);
+  const wave = await getShopWaveStatus(shop.id);
   const summary = plan.paid
     ? plan.monthlyOrders === null
       ? "Commandes illimitées."
@@ -18,7 +20,7 @@ export default async function SettingsPage() {
         </p>
       </div>
       
-      <SettingsForm shop={shop} plan={{ name: plan.name, paid: plan.paid, summary }} />
+      <SettingsForm shop={shop} plan={{ name: plan.name, paid: plan.paid, summary }} wave={wave} />
     </div>
   );
 }

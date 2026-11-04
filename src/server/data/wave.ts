@@ -72,9 +72,17 @@ export async function getAppOrigin(): Promise<string> {
   return `${h.get('x-forwarded-proto') || 'https'}://${h.get('x-forwarded-host') || h.get('host')}`;
 }
 
-async function waveFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const apiKey = process.env.WAVE_API_KEY;
-  if (!apiKey) throw new Error('WAVE_API_KEY manquante.');
+export class WaveApiError extends Error {
+  readonly status: number;
+  constructor(status: number, body: string) {
+    super(`Wave API ${status}: ${body.slice(0, 300)}`);
+    this.status = status;
+  }
+}
+
+// Appel à l'API Wave avec une clé donnée : celle de Setlou (abonnements)
+// ou celle d'un vendeur (paiement des commandes, voir shop-wave.ts).
+export async function waveRequest<T>(apiKey: string, path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${WAVE_API}${path}`, {
     ...init,
     headers: {
@@ -85,10 +93,15 @@ async function waveFetch<T>(path: string, init?: RequestInit): Promise<T> {
     cache: 'no-store',
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Wave API ${res.status}: ${body.slice(0, 300)}`);
+    throw new WaveApiError(res.status, await res.text());
   }
   return (await res.json()) as T;
+}
+
+async function waveFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const apiKey = process.env.WAVE_API_KEY;
+  if (!apiKey) throw new Error('WAVE_API_KEY manquante.');
+  return waveRequest<T>(apiKey, path, init);
 }
 
 // client_reference = "<shopId>:<plan>:<nonce>[:teranga]" ; le nonce permet de retrouver
@@ -127,7 +140,10 @@ export async function findCheckoutByReference(reference: string): Promise<WaveCh
 // En-tête « Wave-Signature: t=<timestamp>,v1=<hex>[,v1=<hex>] »,
 // signature = HMAC-SHA256(secret, timestamp + corps brut).
 export function verifyWaveWebhook(rawBody: string, signatureHeader: string | null): boolean {
-  const secret = process.env.WAVE_WEBHOOK_SECRET;
+  return verifyWaveSignature(rawBody, signatureHeader, process.env.WAVE_WEBHOOK_SECRET);
+}
+
+export function verifyWaveSignature(rawBody: string, signatureHeader: string | null, secret: string | null | undefined): boolean {
   if (!secret || !signatureHeader) return false;
 
   const parts = signatureHeader.split(',').map((p) => p.trim().split('='));
