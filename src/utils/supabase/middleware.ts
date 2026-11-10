@@ -27,6 +27,19 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Si Supabase redirige vers n'importe quelle page (hors /auth/callback) avec un code ou token_hash de confirmation
+  if (
+    request.nextUrl.pathname !== "/auth/callback" &&
+    (request.nextUrl.searchParams.has("code") || request.nextUrl.searchParams.has("token_hash"))
+  ) {
+    const callbackUrl = request.nextUrl.clone();
+    callbackUrl.pathname = "/auth/callback";
+    if (!callbackUrl.searchParams.has("next")) {
+      callbackUrl.searchParams.set("next", "/confirmed");
+    }
+    return NextResponse.redirect(callbackUrl);
+  }
+
   // refreshing the auth token
   const {
     data: { user },
@@ -36,6 +49,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||
+    request.nextUrl.pathname.startsWith("/confirmed") ||
+    request.nextUrl.pathname.startsWith("/auth") ||
     request.nextUrl.pathname.startsWith("/mot-de-passe-oublie") ||
     request.nextUrl.pathname.startsWith("/reinitialiser-mot-de-passe") ||
     request.nextUrl.pathname.startsWith("/pay") ||

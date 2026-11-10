@@ -8,6 +8,16 @@ export function PageViewTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Si Supabase redirige vers n'importe quelle page (autre que /confirmed) avec un token dans le hash
+    if (
+      pathname !== "/confirmed" &&
+      typeof window !== "undefined" &&
+      window.location.hash.includes("access_token=")
+    ) {
+      window.location.replace(`/confirmed${window.location.hash}`);
+      return;
+    }
+
     if (!pathname || pathname.startsWith("/admin")) return;
 
     const body = JSON.stringify({ path: pathname, referrer: document.referrer || null });

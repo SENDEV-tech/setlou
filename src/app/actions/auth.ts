@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -61,18 +62,37 @@ export async function signupAction(formData: FormData) {
 
   const { email, password, fullName, shopName, whatsapp } = parsed.data;
 
+  const origin = await getAppOrigin();
   const supabase = await createClient();
+  const supabaseImplicit = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        flowType: "implicit",
+        persistSession: false,
+      },
+    }
+  );
   
-  // 1. Create Auth User
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  // 1. Create Auth User (flow implicite pour permettre la confirmation sur n'importe quel appareil/navigateur)
+  const { data: authData, error: authError } = await supabaseImplicit.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: `${origin}/confirmed`,
       data: {
         full_name: fullName,
       },
     },
   });
+
+  if (authData?.session) {
+    await supabase.auth.setSession({
+      access_token: authData.session.access_token,
+      refresh_token: authData.session.refresh_token,
+    });
+  }
 
   if (authError) {
     return { error: authError.message };

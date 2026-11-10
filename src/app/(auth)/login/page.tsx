@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { loginAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,23 @@ import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (window.location.hash.includes("access_token=")) {
+      window.location.replace(`/confirmed${window.location.hash}`);
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("confirmed") === "true") {
+      setConfirmed(true);
+    }
+    const errParam = params.get("error");
+    if (errParam) {
+      setError(errParam);
+    }
+  }, []);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -31,7 +47,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/tableau-de-bord`,
       }
     });
 
@@ -56,6 +72,11 @@ export default function LoginPage() {
       </div>
 
       <div className="grid gap-6">
+        {confirmed && (
+          <div className="bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 p-3 rounded-lg text-sm text-center font-medium">
+            Email confirmé avec succès ! Vous pouvez maintenant vous connecter.
+          </div>
+        )}
         <form action={handleSubmit}>
           <div className="grid gap-4">
             <div className="grid gap-2">
