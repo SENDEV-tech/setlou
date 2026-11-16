@@ -2,12 +2,38 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { FREE_PLAN } from "@/server/data/plan";
 import { getAppOrigin } from "@/server/data/wave";
+
+export async function generateUniqueShopSlug(
+  adminClient: SupabaseClient,
+  shopName: string
+): Promise<string> {
+  const base =
+    shopName
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "boutique";
+
+  const { data: existing } = await adminClient
+    .from("shops")
+    .select("id")
+    .eq("slug", base)
+    .maybeSingle();
+
+  if (!existing) {
+    return base;
+  }
+
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${base}-${suffix}`;
+}
 
 export async function loginAction(formData: FormData) {
   const emailOrUsername = formData.get("email") as string;
@@ -45,11 +71,11 @@ export async function logoutAction() {
 }
 
 const signupSchema = z.object({
-  email: z.string().email("Email invalide"),
+  email: z.string().trim().toLowerCase().email("Email invalide"),
   password: z.string().min(6, "Le mot de passe doit faire au moins 6 caractères"),
-  fullName: z.string().min(2, "Nom trop court"),
-  shopName: z.string().min(2, "Nom de boutique trop court"),
-  whatsapp: z.string().min(8, "Numéro WhatsApp invalide"),
+  fullName: z.string().trim().min(2, "Nom trop court"),
+  shopName: z.string().trim().min(2, "Nom de boutique trop court"),
+  whatsapp: z.string().trim().min(8, "Numéro WhatsApp invalide"),
 });
 
 export async function signupAction(formData: FormData) {
@@ -64,6 +90,7 @@ export async function signupAction(formData: FormData) {
 
   const origin = await getAppOrigin();
   const supabase = await createClient();
+  const adminClient = createAdminClient();
   const supabaseImplicit = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -87,6 +114,20 @@ export async function signupAction(formData: FormData) {
     },
   });
 
+  if (authError && !authError.message.toLowerCase().includes("already registered")) {
+    return { error: authError.message };
+  }
+
+  // Quand "Confirm email" est actif sur Supabase, un email déjà inscrit renvoie
+  // un faux objet user avec `identities: []` (son ID n'existe pas dans auth.users).
+  const isExistingAccount =
+    Boolean(authError) ||
+    !authData.user ||
+    (Array.isArray(authData.user.identities) && authData.user.identities.length === 0);
+
+  let userId = authData.user?.id;
+  let hasActiveSession = Boolean(authData?.session);
+
   if (authData?.session) {
     await supabase.auth.setSession({
       access_token: authData.session.access_token,
@@ -94,28 +135,82 @@ export async function signupAction(formData: FormData) {
     });
   }
 
-  if (authError) {
-    return { error: authError.message };
+  if (isExistingAccount) {
+    const { data: listData } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    const existingUser = listData?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+
+    if (!existingUser) {
+      return {
+        error: "Un compte existe déjà avec cet email. Veuillez vous connecter.",
+      };
+    }
+
+    const { data: existingProfile } = await adminClient
+      .from("profiles")
+      .select("id, shop_id")
+      .eq("id", existingUser.id)
+      .maybeSingle();
+
+    const { data: existingShop } = await adminClient
+      .from("shops")
+      .select("id")
+      .eq("owner_id", existingUser.id)
+      .maybeSingle();
+
+    if (existingProfile || existingShop) {
+      return {
+        error:
+          "Un compte existe déjà avec cet email. Connectez-vous ou utilisez « Mot de passe oublié ».",
+      };
+    }
+
+    // Compte créé précédemment sans boutique (ex: clic sur Google ou tentative interrompue) :
+    // on finalise son mot de passe et on crée sa boutique.
+    await adminClient.auth.admin.updateUserById(existingUser.id, {
+      password,
+      email_confirm: true,
+      user_metadata: {
+        ...existingUser.user_metadata,
+        full_name: fullName,
+      },
+    });
+
+    userId = existingUser.id;
+    const { data: signInData } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    hasActiveSession = Boolean(signInData?.session);
   }
 
-  if (!authData.user) {
+  if (!userId) {
     return { error: "Erreur lors de la création du compte." };
   }
 
-  // 2. Create Shop
-  // Clé service_role : la RLS interdit ces insertions depuis le navigateur, et
-  // aucune session n'existe encore si l'email doit être confirmé.
-  const adminClient = createAdminClient();
+  // Si l'utilisateur a cliqué 2 fois sur "S'inscrire" avant de confirmer son email
+  const { data: alreadyCreatedShop } = await adminClient
+    .from("shops")
+    .select("id")
+    .eq("owner_id", userId)
+    .maybeSingle();
+
+  if (alreadyCreatedShop) {
+    return { success: true, requireEmailConfirmation: !hasActiveSession };
+  }
+
+  // 2. Create Shop avec un slug garanti unique
+  const uniqueSlug = await generateUniqueShopSlug(adminClient, shopName);
+
   const { data: shopData, error: shopError } = await adminClient
     .from("shops")
     .insert({
-      owner_id: authData.user.id,
+      owner_id: userId,
       name: shopName,
-      slug: shopName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      slug: uniqueSlug,
       whatsapp_number: whatsapp,
-      // Formule gratuite à vie (limites dans src/server/data/plan.ts) ;
-      // abonnement Wave ou carte seulement quand la boutique grandit.
-      subscription_plan: 'free',
+      subscription_plan: "free",
       subscription_status: null,
       subscription_provider: null,
       paid_until: null,
@@ -125,15 +220,16 @@ export async function signupAction(formData: FormData) {
     .select()
     .single();
 
-  if (shopError) {
+  if (shopError || !shopData) {
+    console.error("signupAction shopError:", shopError);
     return { error: "Erreur lors de la création de la boutique." };
   }
 
   // 3. Create Owner Profile
   const { error: profileError } = await adminClient
     .from("profiles")
-    .insert({
-      id: authData.user.id,
+    .upsert({
+      id: userId,
       shop_id: shopData.id,
       role: "owner",
       full_name: fullName,
@@ -144,11 +240,12 @@ export async function signupAction(formData: FormData) {
     });
 
   if (profileError) {
+    console.error("signupAction profileError:", profileError);
     await adminClient.from("shops").delete().eq("id", shopData.id);
     return { error: "Erreur lors de la création du profil." };
   }
 
-  return { success: true, requireEmailConfirmation: !authData.session };
+  return { success: true, requireEmailConfirmation: !hasActiveSession };
 }
 
 // ---------------------------------------------------------------------------
