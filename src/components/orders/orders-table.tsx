@@ -210,11 +210,11 @@ export function OrdersTable({ orders }: OrdersTableProps) {
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg p-6 rounded-2xl">
+        <DialogContent className="grid-cols-1 sm:max-w-lg p-5 sm:p-6 rounded-2xl max-h-[90dvh] overflow-y-auto overflow-x-hidden">
           {selectedOrder && (
-            <div className="space-y-5">
+            <div className="space-y-5 min-w-0">
               <DialogHeader className="text-left space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 pr-8">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Détails Commande
                   </span>
@@ -231,13 +231,13 @@ export function OrdersTable({ orders }: OrdersTableProps) {
 
               {/* Infos client et montant */}
               <div className="bg-muted/40 rounded-xl p-4 space-y-3 text-sm border">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-foreground">{customerName}</span>
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="font-semibold text-foreground truncate">{customerName}</span>
                   </div>
                   {customerPhone && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0">
                       <Phone className="h-3 w-3" />
                       {customerPhone}
                     </span>
@@ -254,9 +254,9 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                 {selectedOrder.order_items && selectedOrder.order_items.length > 0 && (
                   <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground space-y-1">
                     {selectedOrder.order_items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex justify-between">
-                        <span>{item.quantity}x {item.product_name}</span>
-                        <span className="font-medium text-foreground">{formatXOF(item.line_total_xof)}</span>
+                      <div key={idx} className="flex justify-between gap-3">
+                        <span className="min-w-0 break-words">{item.quantity}x {item.product_name}</span>
+                        <span className="font-medium text-foreground shrink-0">{formatXOF(item.line_total_xof)}</span>
                       </div>
                     ))}
                   </div>
@@ -268,8 +268,8 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                 <label className="text-xs font-semibold text-foreground">
                   Lien de paiement sécurisé
                 </label>
-                <div className="p-3 bg-muted/60 rounded-xl flex items-center gap-2 border shadow-inner">
-                  <span className="text-xs font-mono truncate select-all flex-1 text-left font-medium">
+                <div className="p-3 bg-muted/60 rounded-xl flex items-center gap-2 border shadow-inner min-w-0">
+                  <span className="text-xs font-mono truncate select-all flex-1 min-w-0 text-left font-medium">
                     {selectedPaymentLink}
                   </span>
                   <Button
@@ -298,8 +298,11 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  // Couleur en style inline : buttonVariants ne fusionne pas les classes,
+                  // et le bg-primary (blanc en mode sombre) prenait le dessus sur le vert.
+                  style={{ backgroundColor: "#25D366", color: "#ffffff" }}
                   className={buttonVariants({
-                    className: "flex-1 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-sm font-medium",
+                    className: "flex-1 shadow-sm font-medium hover:opacity-90",
                     size: "default",
                   })}
                 >
